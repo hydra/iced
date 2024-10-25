@@ -1,5 +1,6 @@
 //! Tabbed document UI example
 
+use std::any::Any;
 use iced_aw::style::tab_bar;
 use iced_aw::{TabLabel, Tabs};
 use iced_fonts::NERD_FONT_BYTES;
@@ -39,7 +40,6 @@ enum Message {
     None,
     AddHome,
     TabMessage(TabMessage),
-
 }
 
 new_key_type! {
@@ -51,16 +51,52 @@ new_key_type! {
 enum TabMessage {
     TabSelected(TabKey),
     TabClosed(TabKey),
+    ChildMessage(Box<dyn Any>)
 }
 
 trait Tab {
-    fn view(&self) -> Element<'static, TabMessage>;
+    type Message;
+
+    fn view(&self) -> Element<'static, Self::Message>;
     fn label(&self) -> String;
+
+    fn update(&mut self, message: Box<dyn Any>) -> ();
 }
+
+enum TabKind {
+    Home(HomeTab),
+}
+
+impl TabKind {
+    pub fn view(&self) -> Element<'static, TabMessage> {
+        match self {
+            TabKind::Home(tab) => tab
+                .view()
+                .map(|message|{
+                    // TODO somehow put message in ChildMessage
+                    TabMessage::ChildMessage(Box::new(message))
+                })
+                .into()
+        }
+    }
+
+    pub fn label(&self) -> String {
+        match self {
+            TabKind::Home(tab) => tab.label()
+        }
+    }
+
+    pub fn update(&mut self, message: Box<dyn Any>) {
+        match self {
+            TabKind::Home(tab) => tab.update(message)
+        }
+    }
+}
+
 
 #[derive(Default)]
 struct TabbedDocumentUI {
-    tabs: SlotMap<TabKey, Box<dyn Tab>>,
+    tabs: SlotMap<TabKey, TabKind>,
 }
 
 impl TabbedDocumentUI {
@@ -70,7 +106,21 @@ impl TabbedDocumentUI {
             Message::AddHome => {
                 self.add_home()
             }
-            Message::TabMessage(_) => {}
+            Message::TabMessage(message) => {
+                println!("message: {:?}", message);
+
+                let tab_key= TabKey::default();
+                let tab = self.tabs.get_mut(tab_key).unwrap();
+
+                match message {
+                    TabMessage::TabSelected(_) => {}
+                    TabMessage::TabClosed(_) => {}
+                    TabMessage::ChildMessage(child_message) => {
+                        tab.update(child_message);
+
+                    }
+                }
+            }
         }
         Task::none()
     }
@@ -131,6 +181,6 @@ impl TabbedDocumentUI {
 
     fn add_home(&mut self) {
         let home_tab = HomeTab::default();
-        let _key = self.tabs.insert(Box::new(home_tab));
+        let _key = self.tabs.insert(TabKind::Home(home_tab));
     }
 }
