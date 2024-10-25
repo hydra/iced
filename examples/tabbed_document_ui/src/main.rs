@@ -16,6 +16,8 @@ pub fn main() -> iced::Result {
 enum Message {
     None,
     AddHome,
+    TabMessage(TabMessage),
+
 }
 
 new_key_type! {
@@ -48,7 +50,7 @@ mod home {
 
     impl Tab for HomeTab {
         fn view(&self) -> Element<'static, TabMessage> {
-            let text = text("content area");
+            let text = text("tab content area");
 
             text.into()
         }
@@ -56,12 +58,13 @@ mod home {
 }
 
 impl TabbedDocumentUI {
-    fn update(&mut self, _message: Message) -> Task<Message> {
-        match _message {
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
             Message::None => {}
             Message::AddHome => {
                 self.add_home()
             }
+            Message::TabMessage(_) => {}
         }
         Task::none()
     }
@@ -81,32 +84,39 @@ impl TabbedDocumentUI {
 
         let tab_bar = self.tabs
             .iter()
-            .fold(Tabs::<TabMessage, TabKey>::new(|tab_key|{
-                TabMessage::TabSelected(tab_key)
-            })
-                .tab_icon_position(iced_aw::tabs::Position::Bottom)
-                .on_close(|tab_key|{
-                    TabMessage::TabClosed(tab_key)
+            .fold(
+                Tabs::<TabMessage, TabKey>::new(|tab_key|{
+                    TabMessage::TabSelected(tab_key)
                 })
-                //.set_active_tab(&TabId(0))
-                .tab_bar_style(Box::new(tab_bar::primary))
-            , |tab_bar, (key, tab)| {
+                    .tab_icon_position(iced_aw::tabs::Position::Bottom)
+                    .on_close(|tab_key|{
+                        TabMessage::TabClosed(tab_key)
+                    })
+                    .tab_bar_style(Box::new(tab_bar::primary))
+                ,
+             |tab_bar, (key, tab)| {
                     tab_bar.push(key, TabLabel::Text("Home".to_string()), tab.view())
-                });
+                }
+            );
 
         let tab_bar: Element<'_, TabMessage> = tab_bar
             .into();
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
+            .map(|tab_message|{
+                Message::TabMessage(tab_message)
+            })
             .into();
 
-        let text = text("content area");
+        // FIXME not displayed when no tabs are present.
+        let status_bar = text("status bar area");
 
         let ui: Element<'_, Message> =
             column![
-                toolbar,
-                mapped_tab_bar,
-                text
+                // item              desired layout
+                toolbar,          // height: auto
+                mapped_tab_bar,   // height: fill
+                status_bar        // height: auto
             ]
                 .into();
 
