@@ -4,8 +4,10 @@ use iced_aw::style::tab_bar;
 use iced_aw::{TabLabel, Tabs};
 use slotmap::{new_key_type, SlotMap};
 use iced::widget::{button, column, container, row, text};
-use iced::{Element, Task };
+use iced::{Element, Task};
 use crate::home::HomeTab;
+
+mod home;
 
 /// entry point
 pub fn main() -> iced::Result {
@@ -39,27 +41,6 @@ trait Tab {
 #[derive(Default)]
 struct TabbedDocumentUI {
     tabs: SlotMap<TabKey, Box<dyn Tab>>,
-}
-
-mod home {
-    use iced::Element;
-    use iced::widget::text;
-    use crate::{Tab, TabMessage};
-
-    #[derive(Default)]
-    pub struct HomeTab {}
-
-    impl Tab for HomeTab {
-        fn view(&self) -> Element<'static, TabMessage> {
-            let text = text("tab content area");
-
-            text.into()
-        }
-
-        fn label(&self) -> String {
-            "Home".to_string()
-        }
-    }
 }
 
 impl TabbedDocumentUI {
