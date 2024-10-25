@@ -33,6 +33,7 @@ enum TabMessage {
 
 trait Tab {
     fn view(&self) -> Element<'static, TabMessage>;
+    fn label(&self) -> String;
 }
 
 #[derive(Default)]
@@ -53,6 +54,10 @@ mod home {
             let text = text("tab content area");
 
             text.into()
+        }
+
+        fn label(&self) -> String {
+            "Home".to_string()
         }
     }
 }
@@ -95,7 +100,7 @@ impl TabbedDocumentUI {
                     .tab_bar_style(Box::new(tab_bar::primary))
                 ,
              |tab_bar, (key, tab)| {
-                    tab_bar.push(key, TabLabel::Text("Home".to_string()), tab.view())
+                    tab_bar.push(key, TabLabel::Text(tab.label()), tab.view())
                 }
             );
 
