@@ -1,5 +1,6 @@
 //! Tabbed document UI example
 
+use std::any::Any;
 use iced_aw::style::tab_bar;
 use iced_aw::{TabLabel, Tabs};
 use iced_fonts::NERD_FONT_BYTES;
@@ -36,7 +37,7 @@ pub fn main() -> iced::Result {
 enum Message {
     None,
     AddHome,
-    TabMessage(TabMessage),
+    TabMessage((TabKey, TabMessage)),
 
 }
 
@@ -49,11 +50,14 @@ new_key_type! {
 enum TabMessage {
     TabSelected(TabKey),
     TabClosed(TabKey),
+    TabMessage(Box<dyn Any>)
 }
 
 trait Tab {
     fn view(&self) -> Element<'static, TabMessage>;
     fn label(&self) -> String;
+
+    fn update(&mut self, message: Box<dyn Any>) -> ();
 }
 
 #[derive(Default)]
@@ -68,7 +72,20 @@ impl TabbedDocumentUI {
             Message::AddHome => {
                 self.add_home()
             }
-            Message::TabMessage(_) => {}
+            Message::TabMessage((tab_key, message)) => {
+                match message {
+                    TabMessage::TabSelected(_) => {}
+                    TabMessage::TabClosed(_) => {}
+                    TabMessage::TabMessage(tab_message) => {
+                        let tab = self.tabs
+                            .get_mut(tab_key)
+                            .unwrap();
+
+                        tab
+                            .update(tab_message)
+                    }
+                }
+            }
         }
         Task::none()
     }
@@ -108,7 +125,7 @@ impl TabbedDocumentUI {
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
             .map(|tab_message|{
-                Message::TabMessage(tab_message)
+                Message::TabMessage((tab_key, tab_message))
             })
             .into();
 
