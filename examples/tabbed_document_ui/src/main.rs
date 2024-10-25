@@ -9,12 +9,27 @@ use iced::{Element, Task};
 use crate::home::HomeTab;
 
 mod home;
+mod config;
 
 /// entry point
 pub fn main() -> iced::Result {
-    iced::application("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
+
+    let config = config::load();
+
+    let result = iced::application("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
         .font(NERD_FONT_BYTES)
-        .run()
+        .run_with(move ||{
+            let mut ui = TabbedDocumentUI::default();
+            if config.show_home_on_startup {
+                ui.add_home();
+            }
+
+            (ui, Task::none())
+        });
+
+    config::save(&config);
+
+    result
 }
 
 #[derive(Debug, Clone)]
