@@ -2,6 +2,7 @@
 
 use iced_aw::style::tab_bar;
 use iced_aw::{TabLabel, Tabs};
+use iced_fonts::NERD_FONT_BYTES;
 use slotmap::{new_key_type, SlotMap};
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
@@ -11,7 +12,9 @@ mod home;
 
 /// entry point
 pub fn main() -> iced::Result {
-    iced::run("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
+    iced::application("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
+        .font(NERD_FONT_BYTES)
+        .run()
 }
 
 #[derive(Debug, Clone)]
