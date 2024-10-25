@@ -18,6 +18,10 @@ impl Tab for HomeTab {
             .font(NERD_FONT);
 
         let show_on_startup_checkbox = checkbox("Show on startup", self.show_on_startup);
+            // FIXME fail to update config with new value
+            // .on_toggle(|value|{
+            //     // THERE ARE NO SUITABLE MESSAGES WE CAN SEND, TabMessage should NOT know about the HomeTab.
+            // });
 
         column![
             text,
