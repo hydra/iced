@@ -1,7 +1,7 @@
 //! Tabbed document UI example
 
 use iced_aw::style::tab_bar;
-use iced_aw::Tabs;
+use iced_aw::{TabLabel, Tabs};
 use slotmap::{new_key_type, SlotMap};
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task };
@@ -19,11 +19,14 @@ enum Message {
 }
 
 new_key_type! {
+    /// A key for a tab
     pub struct TabKey;
 }
 
+#[derive(Debug, Clone)]
 enum TabMessage {
-    None
+    TabSelected(TabKey),
+    TabClosed(TabKey),
 }
 
 trait Tab {
@@ -76,25 +79,33 @@ impl TabbedDocumentUI {
             row![home_button, new_button, open_button, close_all_button]
                 .into();
 
-        let tab_bar = Tabs::<Message, TabKey>::new(|tab_id|{
-            Message::None
-        })
-            .tab_icon_position(iced_aw::tabs::Position::Bottom)
-            .on_close(|tab_id|{
-                Message::None
+        let tab_bar = self.tabs
+            .iter()
+            .fold(Tabs::<TabMessage, TabKey>::new(|tab_key|{
+                TabMessage::TabSelected(tab_key)
             })
-            //.set_active_tab(&TabId(0))
-            .tab_bar_style(Box::new(tab_bar::primary));
+                .tab_icon_position(iced_aw::tabs::Position::Bottom)
+                .on_close(|tab_key|{
+                    TabMessage::TabClosed(tab_key)
+                })
+                //.set_active_tab(&TabId(0))
+                .tab_bar_style(Box::new(tab_bar::primary))
+            , |tab_bar, (key, tab)| {
+                    tab_bar.push(key, TabLabel::Text("Home".to_string()), tab.view())
+                });
 
-        let tab_bar: Element<'_, Message> = tab_bar
+        let tab_bar: Element<'_, TabMessage> = tab_bar
+            .into();
+
+        let mapped_tab_bar: Element<'_, Message> = tab_bar
             .into();
 
         let text = text("content area");
 
-        let ui: Element<'_, Message > =
+        let ui: Element<'_, Message> =
             column![
                 toolbar,
-                tab_bar,
+                mapped_tab_bar,
                 text
             ]
                 .into();
