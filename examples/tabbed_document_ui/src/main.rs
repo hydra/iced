@@ -27,6 +27,8 @@ pub fn main() -> iced::Result {
             (ui, Task::none())
         });
 
+    // TODO how do we get the value of the `show_on_startup` in the HomeTab instance back into the config?
+
     config::save(&config);
 
     result
