@@ -11,8 +11,8 @@ new_key_type! {
 
 #[derive(Debug, Clone)]
 pub enum TabMessage<TKM> {
-    TabSelected(TabKey),
-    TabClosed(TabKey),
+    SelectTab(TabKey),
+    CloseTab(TabKey),
     TabKindMessage(TabKey, TKM),
 }
 
@@ -82,11 +82,11 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
 
                 TabAction::TabAction(action)
             },
-            TabMessage::TabSelected(key) => {
+            TabMessage::SelectTab(key) => {
                 self.selected = Some(key);
                 TabAction::TabSelected(key)
             },
-            TabMessage::TabClosed(key) => {
+            TabMessage::CloseTab(key) => {
                 match self.selected {
                     Some(selected) if selected == key => {
                         let _previously_selected = self.selected.take();
@@ -106,11 +106,11 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
             .iter()
             .fold(
                 iced_aw::Tabs::<TabMessage<TKM>, TabKey>::new(|tab_key|{
-                    TabMessage::TabSelected(tab_key)
+                    TabMessage::SelectTab(tab_key)
                 })
                     .tab_icon_position(iced_aw::tabs::Position::Bottom)
                     .on_close(|tab_key|{
-                        TabMessage::TabClosed(tab_key)
+                        TabMessage::CloseTab(tab_key)
                     })
                     .tab_bar_style(Box::new(tab_bar::primary))
                 ,

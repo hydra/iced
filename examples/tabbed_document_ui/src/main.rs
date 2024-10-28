@@ -44,9 +44,20 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Clone)]
 enum Message {
-    AddHome,
     TabKindMessage(TabMessage<TabKindMessage>),
-    CloseAll,
+    ToolbarMessage(ToolbarMessage),
+}
+
+#[derive(Debug, Clone)]
+enum ToolbarMessage {
+    AddHome,
+    CloseAllTabs,
+}
+
+#[derive(Debug)]
+enum ToolbarAction {
+    AddedHomeTab,
+    ClosedAllTabs(Vec<TabKey>),
 }
 
 struct TabbedDocumentUI {
@@ -65,8 +76,18 @@ impl TabbedDocumentUI {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::AddHome => {
-                self.add_home()
+            Message::ToolbarMessage(toolbar_message) => {
+                let action = self.process_toolbar_message(toolbar_message);
+                match action {
+                    ToolbarAction::ClosedAllTabs(closed_tabs) => {
+                        for tab_key in closed_tabs {
+                            Self::on_tab_closed(tab_key)
+                        }
+                    }
+                    ToolbarAction::AddedHomeTab => {
+                        println!("added home tab");
+                    }
+                }
             }
             Message::TabKindMessage(message) => {
                 let action = self.tabs.update(message);
@@ -92,12 +113,6 @@ impl TabbedDocumentUI {
                     }
                 }
             }
-            Message::CloseAll => {
-                let closed_tabs = self.tabs.close_all();
-                for tab_key in closed_tabs {
-                    Self::on_tab_closed(tab_key)
-                }
-            }
         }
         Task::none()
     }
@@ -109,16 +124,21 @@ impl TabbedDocumentUI {
     fn view(&self) -> Element<'_, Message> {
 
         let home_button = button("home")
-            .on_press(Message::AddHome);
+            .on_press(ToolbarMessage::AddHome);
         let new_button = button("new");
         let open_button = button("open");
         let close_all_button = button("close all")
-            .on_press(Message::CloseAll);
+            .on_press(ToolbarMessage::CloseAllTabs);
 
 
-        let toolbar: Element<'_, Message> =
+        let toolbar: Element<'_, ToolbarMessage> =
             row![home_button, new_button, open_button, close_all_button]
                 .into();
+
+        let mapped_toolbar: Element<'_, Message> = toolbar
+            .map(|toolbar_message| Message::ToolbarMessage(toolbar_message))
+            .into();
+
 
         let tab_bar = self.tabs.view();
 
@@ -134,7 +154,7 @@ impl TabbedDocumentUI {
         let ui: Element<'_, Message> =
             column![
                 // item              desired layout
-                toolbar,          // height: auto
+                mapped_toolbar,   // height: auto
                 mapped_tab_bar,   // height: fill
                 status_bar        // height: auto
             ]
@@ -147,4 +167,18 @@ impl TabbedDocumentUI {
         let home_tab = HomeTab::new(self.config.show_home_on_startup);
         let _key = self.tabs.push(TabKind::Home(home_tab));
     }
+
+    fn process_toolbar_message(&mut self, message: ToolbarMessage) -> ToolbarAction {
+        match message {
+            ToolbarMessage::AddHome => {
+                self.add_home();
+                ToolbarAction::AddedHomeTab
+            }
+            ToolbarMessage::CloseAllTabs => {
+                let closed_tabs = self.tabs.close_all();
+                ToolbarAction::ClosedAllTabs(closed_tabs)
+            }
+        }
+    }
 }
+
