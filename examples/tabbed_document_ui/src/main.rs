@@ -1,15 +1,17 @@
 //! Tabbed document UI example
 
-use iced_aw::style::tab_bar;
-use iced_aw::{TabLabel, Tabs};
 use iced_fonts::NERD_FONT_BYTES;
-use slotmap::{new_key_type, SlotMap};
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
-use crate::home::{HomeTab, HomeTabAction, HomeTabMessage};
+use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
+use crate::home::{HomeTab, HomeTabAction};
+use crate::tabs::{TabAction, TabMessage};
 
 mod home;
 mod config;
+
+mod tabs;
+mod app_tabs;
 
 /// entry point
 pub fn main() -> iced::Result {
@@ -40,73 +42,9 @@ enum Message {
     TabKindMessage(TabMessage<TabKindMessage>)
 }
 
-new_key_type! {
-    /// A key for a tab
-    pub struct TabKey;
-}
-
-#[derive(Debug, Clone)]
-enum TabMessage<TKM> {
-    TabSelected(TabKey),
-    TabClosed(TabKey),
-    TabKindMessage(TabKey, TKM),
-}
-
-
-trait Tab {
-    type Message;
-    type Action;
-
-    fn view(&self) -> Element<'static, Self::Message>;
-    fn label(&self) -> String;
-
-    fn update(&mut self, message: Self::Message) -> Self::Action;
-}
-
-enum TabKind {
-    Home(HomeTab),
-}
-
-#[derive(Debug, Clone)]
-enum TabKindMessage {
-    HomeTabMessage(HomeTabMessage),
-}
-
-enum TabKindAction {
-    HomeTabAction(HomeTabAction)
-}
-
-impl TabKind {
-    pub fn view(&self) -> Element<'static, TabKindMessage> {
-        match self {
-            TabKind::Home(tab) => tab
-                .view()
-                .map(|message|{
-                    TabKindMessage::HomeTabMessage(message)
-                })
-                .into()
-        }
-    }
-
-    pub fn label(&self) -> String {
-        match self {
-            TabKind::Home(tab) => tab.label()
-        }
-    }
-
-    pub fn update(&mut self, message: TabKindMessage) -> TabKindAction {
-        match (self, message) {
-            (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => {
-                TabKindAction::HomeTabAction(tab.update(message))
-            }
-        }
-    }
-}
-
-
 #[derive(Default)]
 struct TabbedDocumentUI {
-    tabs: SlotMap<TabKey, TabKind>,
+    tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>
 }
 
 impl TabbedDocumentUI {
@@ -115,21 +53,20 @@ impl TabbedDocumentUI {
             Message::AddHome => {
                 self.add_home()
             }
-            Message::TabKindMessage(tab_kind_message) => {
-                match tab_kind_message {
-                    TabMessage::TabSelected(_key) => {}
-                    TabMessage::TabClosed(_key) => {}
-                    TabMessage::TabKindMessage(key, message) => {
-                        match message {
-                            TabKindMessage::HomeTabMessage(ref home_tab_message) => {
-                                // find the tab in `self.tabs` and delegate to the `update` method on the tab instance
-                                println!("home tab message: {:?}", home_tab_message);
-                                let tab = self.tabs.get_mut(key).unwrap();
-                                let action = tab.update(message);
+            Message::TabKindMessage(message) => {
+                let action = self.tabs.update(message, &TabKind::update);
 
-                                // TODO Do something with the action.
-                                match action {
-                                    TabKindAction::HomeTabAction(_) => {}
+                match action {
+                    TabAction::TabSelected(_key) => {}
+                    TabAction::TabClosed(_key) => {}
+                    TabAction::TabAction(tab_kind_action) => {
+                        match tab_kind_action {
+                            TabKindAction::HomeTabAction(home_tab_action) => {
+                                println!("home tab action: {:?}", home_tab_action);
+                                match home_tab_action {
+                                    HomeTabAction::ShowOnStartupChanged => {
+                                        // TODO something...
+                                    }
                                 }
                             }
                         }
@@ -153,30 +90,10 @@ impl TabbedDocumentUI {
             row![home_button, new_button, open_button, close_all_button]
                 .into();
 
-        let tab_bar = self.tabs
-            .iter()
-            .fold(
-                Tabs::<TabMessage<TabKindMessage>, TabKey>::new(|tab_key|{
-                    TabMessage::TabSelected(tab_key)
-                })
-                    .tab_icon_position(iced_aw::tabs::Position::Bottom)
-                    .on_close(|tab_key|{
-                        TabMessage::TabClosed(tab_key)
-                    })
-                    .tab_bar_style(Box::new(tab_bar::primary))
-                ,
-                |tab_bar, (key, tab)| {
-                    let view = tab
-                        .view()
-                        .map(move |message|{
-                            TabMessage::TabKindMessage(key, message)
-                        });
-                    tab_bar.push(key, TabLabel::Text(tab.label()), view)
-                }
-            );
-
-        let tab_bar: Element<'_, TabMessage<TabKindMessage>> = tab_bar
-            .into();
+        let tab_bar = self.tabs.view(
+            &TabKind::view,
+            &TabKind::label,
+        );
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
             .map(|tab_message|{
@@ -202,6 +119,6 @@ impl TabbedDocumentUI {
     fn add_home(&mut self) {
         // TODO somehow, get the config state into the HomeTab
         let home_tab = HomeTab::default();
-        let _key = self.tabs.insert(TabKind::Home(home_tab));
+        let _key = self.tabs.push(TabKind::Home(home_tab));
     }
 }

@@ -2,7 +2,7 @@ use iced_fonts::{Nerd, NERD_FONT};
 use iced_fonts::nerd::icon_to_char;
 use iced::Element;
 use iced::widget::{text, column, checkbox};
-use crate::Tab;
+use crate::tabs::Tab;
 
 #[derive(Default)]
 pub struct HomeTab {
@@ -14,6 +14,7 @@ pub enum HomeTabMessage {
     ShowOnStartupChanged(bool)
 }
 
+#[derive(Debug)]
 pub enum HomeTabAction {
     ShowOnStartupChanged
 }
