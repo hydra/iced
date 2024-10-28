@@ -1,13 +1,12 @@
 //! Tabbed document UI example
 
-use std::any::Any;
 use iced_aw::style::tab_bar;
 use iced_aw::{TabLabel, Tabs};
 use iced_fonts::NERD_FONT_BYTES;
 use slotmap::{new_key_type, SlotMap};
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
-use crate::home::HomeTab;
+use crate::home::{HomeTab, HomeTabMessage};
 
 mod home;
 mod config;
@@ -37,9 +36,8 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Clone)]
 enum Message {
-    None,
     AddHome,
-    TabMessage(TabMessage),
+    TabKindMessage(TabMessage<TabKindMessage>)
 }
 
 new_key_type! {
@@ -48,11 +46,12 @@ new_key_type! {
 }
 
 #[derive(Debug, Clone)]
-enum TabMessage {
+enum TabMessage<TKM> {
     TabSelected(TabKey),
     TabClosed(TabKey),
-    ChildMessage(Box<dyn Any>)
+    TabKindMessage(TabKey, TKM),
 }
+
 
 trait Tab {
     type Message;
@@ -60,21 +59,25 @@ trait Tab {
     fn view(&self) -> Element<'static, Self::Message>;
     fn label(&self) -> String;
 
-    fn update(&mut self, message: Box<dyn Any>) -> ();
+    fn update(&mut self, message: Self::Message) -> ();
 }
 
 enum TabKind {
     Home(HomeTab),
 }
 
+#[derive(Debug, Clone)]
+enum TabKindMessage {
+    HomeTabMessage(HomeTabMessage),
+}
+
 impl TabKind {
-    pub fn view(&self) -> Element<'static, TabMessage> {
+    pub fn view(&self) -> Element<'static, TabKindMessage> {
         match self {
             TabKind::Home(tab) => tab
                 .view()
                 .map(|message|{
-                    // TODO somehow put message in ChildMessage
-                    TabMessage::ChildMessage(Box::new(message))
+                    TabKindMessage::HomeTabMessage(message)
                 })
                 .into()
         }
@@ -86,9 +89,9 @@ impl TabKind {
         }
     }
 
-    pub fn update(&mut self, message: Box<dyn Any>) {
-        match self {
-            TabKind::Home(tab) => tab.update(message)
+    pub fn update(&mut self, message: TabKindMessage) {
+        match (self, message) {
+            (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => tab.update(message)
         }
     }
 }
@@ -102,22 +105,22 @@ struct TabbedDocumentUI {
 impl TabbedDocumentUI {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::None => {}
             Message::AddHome => {
                 self.add_home()
             }
-            Message::TabMessage(message) => {
-                println!("message: {:?}", message);
-
-                let tab_key= TabKey::default();
-                let tab = self.tabs.get_mut(tab_key).unwrap();
-
-                match message {
-                    TabMessage::TabSelected(_) => {}
-                    TabMessage::TabClosed(_) => {}
-                    TabMessage::ChildMessage(child_message) => {
-                        tab.update(child_message);
-
+            Message::TabKindMessage(tab_kind_message) => {
+                match tab_kind_message {
+                    TabMessage::TabSelected(_key) => {}
+                    TabMessage::TabClosed(_key) => {}
+                    TabMessage::TabKindMessage(key, message) => {
+                        match message {
+                            TabKindMessage::HomeTabMessage(ref home_tab_message) => {
+                                // find the tab in `self.tabs` and delegate to the `update` method on the tab instance
+                                println!("home tab message: {:?}", home_tab_message);
+                                let tab = self.tabs.get_mut(key).unwrap();
+                                tab.update(message)
+                            }
+                        }
                     }
                 }
             }
@@ -141,7 +144,7 @@ impl TabbedDocumentUI {
         let tab_bar = self.tabs
             .iter()
             .fold(
-                Tabs::<TabMessage, TabKey>::new(|tab_key|{
+                Tabs::<TabMessage<TabKindMessage>, TabKey>::new(|tab_key|{
                     TabMessage::TabSelected(tab_key)
                 })
                     .tab_icon_position(iced_aw::tabs::Position::Bottom)
@@ -150,17 +153,22 @@ impl TabbedDocumentUI {
                     })
                     .tab_bar_style(Box::new(tab_bar::primary))
                 ,
-             |tab_bar, (key, tab)| {
-                    tab_bar.push(key, TabLabel::Text(tab.label()), tab.view())
+                |tab_bar, (key, tab)| {
+                    let view = tab
+                        .view()
+                        .map(move |message|{
+                            TabMessage::TabKindMessage(key, message)
+                        });
+                    tab_bar.push(key, TabLabel::Text(tab.label()), view)
                 }
             );
 
-        let tab_bar: Element<'_, TabMessage> = tab_bar
+        let tab_bar: Element<'_, TabMessage<TabKindMessage>> = tab_bar
             .into();
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
             .map(|tab_message|{
-                Message::TabMessage(tab_message)
+                Message::TabKindMessage(tab_message)
             })
             .into();
 

@@ -1,9 +1,8 @@
-use std::any::Any;
 use iced_fonts::{Nerd, NERD_FONT};
 use iced_fonts::nerd::icon_to_char;
 use iced::Element;
 use iced::widget::{text, column, checkbox};
-use crate::{Tab, TabMessage};
+use crate::Tab;
 
 #[derive(Default)]
 pub struct HomeTab {
@@ -42,12 +41,11 @@ impl Tab for HomeTab {
         "Home".to_string()
     }
 
-    fn update(&mut self, message: Box<dyn Any>) -> () {
-        let message: &HomeTabMessage = &message.downcast_ref().unwrap();
+    fn update(&mut self, message: HomeTabMessage) -> () {
 
         match message {
             HomeTabMessage::ShowOnStartupChanged(value) => {
-                self.show_on_startup = *value;
+                self.show_on_startup = value;
             }
         }
 
