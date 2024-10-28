@@ -7,7 +7,7 @@ use iced::{Element, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
 use crate::config::Config;
 use crate::home::{HomeTab, HomeTabAction};
-use crate::tabs::{TabAction, TabMessage};
+use crate::tabs::{TabAction, TabKey, TabMessage};
 
 mod home;
 mod config;
@@ -76,7 +76,7 @@ impl TabbedDocumentUI {
                         println!("tab selected. key: {:?}", key);
                     }
                     TabAction::TabClosed(key) => {
-                        println!("tab closed. key: {:?}", key);
+                        Self::on_tab_closed(key);
                     }
                     TabAction::TabAction(tab_kind_action) => {
                         match tab_kind_action {
@@ -93,10 +93,17 @@ impl TabbedDocumentUI {
                 }
             }
             Message::CloseAll => {
-                self.tabs.close_all()
+                let closed_tabs = self.tabs.close_all();
+                for tab_key in closed_tabs {
+                    Self::on_tab_closed(tab_key)
+                }
             }
         }
         Task::none()
+    }
+
+    fn on_tab_closed(key: TabKey) {
+        println!("tab closed. key: {:?}", key);
     }
 
     fn view(&self) -> Element<'_, Message> {

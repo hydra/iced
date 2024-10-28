@@ -52,10 +52,11 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
         self.tabs.insert(tab_kind)
     }
 
-    pub fn close_all(&mut self) {
-        // FIXME this should probably generate multiple TabAction::TabClosed actions instead of this
+    pub fn close_all(&mut self) -> Vec<TabKey> {
+        let closed_tabs: Vec<TabKey> = self.tabs.keys().collect();
         let _previously_selected = self.selected.take();
-        self.tabs.clear()
+        self.tabs.clear();
+        closed_tabs
     }
 }
 
