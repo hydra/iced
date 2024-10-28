@@ -1,6 +1,6 @@
 use iced::Element;
 use crate::home::{HomeTab, HomeTabAction, HomeTabMessage};
-use crate::tabs::{Tab, TabKey};
+use crate::tabs::{AppTabs, Tab, TabKey};
 
 pub enum TabKind {
     Home(HomeTab),
@@ -15,9 +15,8 @@ pub enum TabKindAction {
     HomeTabAction(HomeTabAction)
 }
 
-
-impl TabKind {
-    pub fn view<'a>(&self, _key: TabKey) -> Element<'a, TabKindMessage> {
+impl AppTabs<TabKindMessage, TabKindAction> for TabKind {
+    fn view<'a>(&self, _key: TabKey) -> Element<'a, TabKindMessage> {
         match self {
             TabKind::Home(tab) => tab
                 .view()
@@ -28,13 +27,13 @@ impl TabKind {
         }
     }
 
-    pub fn label(&self, _key: TabKey) -> String {
+    fn label(&self, _key: TabKey) -> String {
         match self {
             TabKind::Home(tab) => tab.label()
         }
     }
 
-    pub fn update(&mut self, message: TabKindMessage) -> TabKindAction {
+    fn update(&mut self, message: TabKindMessage) -> TabKindAction {
         match (self, message) {
             (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => {
                 TabKindAction::HomeTabAction(tab.update(message))

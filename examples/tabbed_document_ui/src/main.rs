@@ -54,7 +54,7 @@ impl TabbedDocumentUI {
                 self.add_home()
             }
             Message::TabKindMessage(message) => {
-                let action = self.tabs.update(message, &TabKind::update);
+                let action = self.tabs.update(message);
 
                 match action {
                     TabAction::TabSelected(_key) => {}
@@ -90,10 +90,7 @@ impl TabbedDocumentUI {
             row![home_button, new_button, open_button, close_all_button]
                 .into();
 
-        let tab_bar = self.tabs.view(
-            &TabKind::view,
-            &TabKind::label,
-        );
+        let tab_bar = self.tabs.view();
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
             .map(|tab_message|{

@@ -22,6 +22,7 @@ pub enum TabAction<TKA> {
     TabAction(TKA),
 }
 
+/// Individual re-usable tabs should implement this
 pub trait Tab {
     type Message;
     type Action;
@@ -32,19 +33,26 @@ pub trait Tab {
     fn update(&mut self, message: Self::Message) -> Self::Action;
 }
 
-pub struct Tabs<TK, TKM, TKA> {
+/// The application, which uses re-usable tabs, should implement this
+pub trait AppTabs<TKM, TKA> {
+    fn view<'a>(&self, key: TabKey) -> Element<'a, TKM>;
+    fn label(&self, key: TabKey) -> String;
+    fn update(&mut self, message: TKM) -> TKA;
+}
+
+pub struct Tabs<TK: AppTabs<TKM, TKA>, TKM, TKA> {
     tabs: SlotMap<TabKey, TK>,
     _phantom1: PhantomData<TKM>,
     _phantom2: PhantomData<TKA>,
 }
 
-impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
+impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
     pub fn push(&mut self, tab_kind: TK) -> TabKey {
         self.tabs.insert(tab_kind)
     }
 }
 
-impl<TK, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
+impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     fn default() -> Self {
         Self {
             tabs: SlotMap::default(),
@@ -54,12 +62,14 @@ impl<TK, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     }
 }
 
-impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
-    pub fn update(&mut self, message: TabMessage<TKM>, update_fn: &dyn Fn(&mut TK, TKM) -> TKA) -> TabAction<TKA> {
+impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
+    pub fn update(
+        &mut self, message: TabMessage<TKM>
+    ) -> TabAction<TKA> {
         match message {
             TabMessage::TabKindMessage(key, message) => {
                 let tab = self.tabs.get_mut(key).unwrap();
-                let action = update_fn(tab, message);
+                let action = tab.update(message);
 
                 TabAction::TabAction(action)
             },
@@ -69,9 +79,7 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     }
 
     pub fn view<'tk>(
-        &'tk self,
-        view_fn: &dyn Fn(&'tk TK, TabKey) -> Element<'_, TKM>,
-        label_fn: & dyn Fn(&'tk TK, TabKey) -> String,
+        &'tk self
     ) -> Element<'tk, TabMessage<TKM>> {
         let tab_bar = self.tabs
             .iter()
@@ -87,14 +95,14 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
                 ,
                 |tab_bar, (key, tab)| {
 
-                    let tab_view = view_fn(tab, key);
+                    let tab_view = tab.view(key);
 
                     let view = tab_view
                         .map(move |message|{
                             TabMessage::TabKindMessage(key, message)
                         });
 
-                    let label = label_fn(tab, key);
+                    let label = tab.label(key);
 
                     tab_bar.push(key, TabLabel::Text(label), view)
                 }
