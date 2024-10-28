@@ -39,7 +39,8 @@ pub fn main() -> iced::Result {
 #[derive(Debug, Clone)]
 enum Message {
     AddHome,
-    TabKindMessage(TabMessage<TabKindMessage>)
+    TabKindMessage(TabMessage<TabKindMessage>),
+    CloseAll,
 }
 
 #[derive(Default)]
@@ -57,8 +58,12 @@ impl TabbedDocumentUI {
                 let action = self.tabs.update(message);
 
                 match action {
-                    TabAction::TabSelected(_key) => {}
-                    TabAction::TabClosed(_key) => {}
+                    TabAction::TabSelected(key) => {
+                        println!("tab selected. key: {:?}", key);
+                    }
+                    TabAction::TabClosed(key) => {
+                        println!("tab closed. key: {:?}", key);
+                    }
                     TabAction::TabAction(tab_kind_action) => {
                         match tab_kind_action {
                             TabKindAction::HomeTabAction(home_tab_action) => {
@@ -73,6 +78,9 @@ impl TabbedDocumentUI {
                     }
                 }
             }
+            Message::CloseAll => {
+                self.tabs.close_all()
+            }
         }
         Task::none()
     }
@@ -83,7 +91,8 @@ impl TabbedDocumentUI {
             .on_press(Message::AddHome);
         let new_button = button("new");
         let open_button = button("open");
-        let close_all_button = button("close all");
+        let close_all_button = button("close all")
+            .on_press(Message::CloseAll);
 
 
         let toolbar: Element<'_, Message> =

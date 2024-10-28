@@ -50,6 +50,12 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
     pub fn push(&mut self, tab_kind: TK) -> TabKey {
         self.tabs.insert(tab_kind)
     }
+
+    pub fn close_all(&mut self) {
+        // FIXME this should probably generate TabAction::TabClosed actions
+        self.tabs.clear()
+    }
+
 }
 
 impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
