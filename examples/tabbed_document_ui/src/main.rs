@@ -188,6 +188,7 @@ impl TabbedDocumentUI {
     }
 
     fn add_home(&mut self) {
+        // TODO somehow, get the config state into the HomeTab
         let home_tab = HomeTab::default();
         let _key = self.tabs.insert(TabKind::Home(home_tab));
     }
