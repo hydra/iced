@@ -6,7 +6,7 @@ use iced_fonts::NERD_FONT_BYTES;
 use slotmap::{new_key_type, SlotMap};
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
-use crate::home::{HomeTab, HomeTabMessage};
+use crate::home::{HomeTab, HomeTabAction, HomeTabMessage};
 
 mod home;
 mod config;
@@ -55,11 +55,12 @@ enum TabMessage<TKM> {
 
 trait Tab {
     type Message;
+    type Action;
 
     fn view(&self) -> Element<'static, Self::Message>;
     fn label(&self) -> String;
 
-    fn update(&mut self, message: Self::Message) -> ();
+    fn update(&mut self, message: Self::Message) -> Self::Action;
 }
 
 enum TabKind {
@@ -69,6 +70,10 @@ enum TabKind {
 #[derive(Debug, Clone)]
 enum TabKindMessage {
     HomeTabMessage(HomeTabMessage),
+}
+
+enum TabKindAction {
+    HomeTabAction(HomeTabAction)
 }
 
 impl TabKind {
@@ -89,9 +94,11 @@ impl TabKind {
         }
     }
 
-    pub fn update(&mut self, message: TabKindMessage) {
+    pub fn update(&mut self, message: TabKindMessage) -> TabKindAction {
         match (self, message) {
-            (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => tab.update(message)
+            (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => {
+                TabKindAction::HomeTabAction(tab.update(message))
+            }
         }
     }
 }
@@ -118,7 +125,12 @@ impl TabbedDocumentUI {
                                 // find the tab in `self.tabs` and delegate to the `update` method on the tab instance
                                 println!("home tab message: {:?}", home_tab_message);
                                 let tab = self.tabs.get_mut(key).unwrap();
-                                tab.update(message)
+                                let action = tab.update(message);
+
+                                // TODO Do something with the action.
+                                match action {
+                                    TabKindAction::HomeTabAction(_) => {}
+                                }
                             }
                         }
                     }

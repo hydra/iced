@@ -14,9 +14,14 @@ pub enum HomeTabMessage {
     ShowOnStartupChanged(bool)
 }
 
+pub enum HomeTabAction {
+    ShowOnStartupChanged
+}
+
 impl Tab for HomeTab {
 
     type Message = HomeTabMessage;
+    type Action = HomeTabAction;
 
     fn view(&self) -> Element<'static, HomeTabMessage> {
         // NOTE: this don't work, likely the font doesn't contain the glyph for 'House'.
@@ -41,14 +46,14 @@ impl Tab for HomeTab {
         "Home".to_string()
     }
 
-    fn update(&mut self, message: HomeTabMessage) -> () {
+    fn update(&mut self, message: HomeTabMessage) -> HomeTabAction {
+        println!("message: {:?}", message);
 
         match message {
             HomeTabMessage::ShowOnStartupChanged(value) => {
                 self.show_on_startup = value;
+                HomeTabAction::ShowOnStartupChanged
             }
         }
-
-        println!("message: {:?}", message);
     }
 }
