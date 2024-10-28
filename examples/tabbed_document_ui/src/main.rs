@@ -5,6 +5,7 @@ use iced_fonts::NERD_FONT_BYTES;
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
+use crate::app_toolbar::{ToolbarAction, ToolbarMessage};
 use crate::config::Config;
 use crate::home::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
@@ -14,6 +15,7 @@ mod config;
 
 mod tabs;
 mod app_tabs;
+mod app_toolbar;
 
 /// entry point
 pub fn main() -> iced::Result {
@@ -48,20 +50,9 @@ enum Message {
     ToolbarMessage(ToolbarMessage),
 }
 
-#[derive(Debug, Clone)]
-enum ToolbarMessage {
-    AddHome,
-    CloseAllTabs,
-}
-
-#[derive(Debug)]
-enum ToolbarAction {
-    AddedHomeTab,
-    ClosedAllTabs(Vec<TabKey>),
-}
-
 struct TabbedDocumentUI {
     tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>,
+    toolbar: app_toolbar::Toolbar,
     config: Arc<Config>
 }
 
@@ -70,6 +61,7 @@ impl TabbedDocumentUI {
     pub fn new(config: Arc<Config>) -> Self {
         Self {
             tabs: Default::default(),
+            toolbar: Default::default(),
             config,
         }
     }
@@ -77,14 +69,16 @@ impl TabbedDocumentUI {
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ToolbarMessage(toolbar_message) => {
-                let action = self.process_toolbar_message(toolbar_message);
+                let action = self.toolbar.update(toolbar_message);
                 match action {
-                    ToolbarAction::ClosedAllTabs(closed_tabs) => {
+                    ToolbarAction::CloseAllTabs => {
+                        let closed_tabs = self.tabs.close_all();
                         for tab_key in closed_tabs {
                             Self::on_tab_closed(tab_key)
                         }
                     }
-                    ToolbarAction::AddedHomeTab => {
+                    ToolbarAction::AddHomeTab => {
+                        self.add_home();
                         println!("added home tab");
                     }
                 }
@@ -167,18 +161,6 @@ impl TabbedDocumentUI {
         let home_tab = HomeTab::new(self.config.show_home_on_startup);
         let _key = self.tabs.push(TabKind::Home(home_tab));
     }
-
-    fn process_toolbar_message(&mut self, message: ToolbarMessage) -> ToolbarAction {
-        match message {
-            ToolbarMessage::AddHome => {
-                self.add_home();
-                ToolbarAction::AddedHomeTab
-            }
-            ToolbarMessage::CloseAllTabs => {
-                let closed_tabs = self.tabs.close_all();
-                ToolbarAction::ClosedAllTabs(closed_tabs)
-            }
-        }
-    }
 }
+
 
