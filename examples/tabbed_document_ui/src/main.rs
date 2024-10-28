@@ -1,9 +1,11 @@
 //! Tabbed document UI example
 
+use std::sync::Arc;
 use iced_fonts::NERD_FONT_BYTES;
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
+use crate::config::Config;
 use crate::home::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabMessage};
 
@@ -16,17 +18,21 @@ mod app_tabs;
 /// entry point
 pub fn main() -> iced::Result {
 
-    let config = config::load();
+    let config = Arc::new(config::load());
 
     let result = iced::application("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
         .font(NERD_FONT_BYTES)
-        .run_with(move ||{
-            let mut ui = TabbedDocumentUI::default();
-            if config.show_home_on_startup {
-                ui.add_home();
-            }
+        .run_with({
+            let config = config.clone();
+            move ||{
+                let mut ui = TabbedDocumentUI::new(config.clone());
 
-            (ui, Task::none())
+                if config.show_home_on_startup {
+                    ui.add_home();
+                }
+
+                (ui, Task::none())
+            }
         });
 
     // TODO how do we get the value of the `show_on_startup` in the HomeTab instance back into the config?
@@ -43,12 +49,20 @@ enum Message {
     CloseAll,
 }
 
-#[derive(Default)]
 struct TabbedDocumentUI {
-    tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>
+    tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>,
+    config: Arc<Config>
 }
 
 impl TabbedDocumentUI {
+
+    pub fn new(config: Arc<Config>) -> Self {
+        Self {
+            tabs: Default::default(),
+            config,
+        }
+    }
+
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::AddHome => {
@@ -123,8 +137,7 @@ impl TabbedDocumentUI {
     }
 
     fn add_home(&mut self) {
-        // TODO somehow, get the config state into the HomeTab
-        let home_tab = HomeTab::default();
+        let home_tab = HomeTab::new(self.config.show_home_on_startup);
         let _key = self.tabs.push(TabKind::Home(home_tab));
     }
 }

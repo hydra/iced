@@ -4,9 +4,16 @@ use iced::Element;
 use iced::widget::{text, column, checkbox};
 use crate::tabs::Tab;
 
-#[derive(Default)]
 pub struct HomeTab {
     show_on_startup: bool
+}
+
+impl HomeTab {
+    pub fn new(show_on_startup: bool) -> Self {
+        Self {
+            show_on_startup
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
