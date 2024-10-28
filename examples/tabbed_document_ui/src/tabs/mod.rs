@@ -42,6 +42,7 @@ pub trait AppTabs<TKM, TKA> {
 
 pub struct Tabs<TK: AppTabs<TKM, TKA>, TKM, TKA> {
     tabs: SlotMap<TabKey, TK>,
+    selected: Option<TabKey>,
     _phantom1: PhantomData<TKM>,
     _phantom2: PhantomData<TKA>,
 }
@@ -52,16 +53,17 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
     }
 
     pub fn close_all(&mut self) {
-        // FIXME this should probably generate TabAction::TabClosed actions
+        // FIXME this should probably generate multiple TabAction::TabClosed actions instead of this
+        let _previously_selected = self.selected.take();
         self.tabs.clear()
     }
-
 }
 
 impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     fn default() -> Self {
         Self {
             tabs: SlotMap::default(),
+            selected: None,
             _phantom1: Default::default(),
             _phantom2: Default::default(),
         }
@@ -79,8 +81,20 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
 
                 TabAction::TabAction(action)
             },
-            TabMessage::TabSelected(key) => TabAction::TabSelected(key),
-            TabMessage::TabClosed(key) => TabAction::TabClosed(key),
+            TabMessage::TabSelected(key) => {
+                self.selected = Some(key);
+                TabAction::TabSelected(key)
+            },
+            TabMessage::TabClosed(key) => {
+                match self.selected {
+                    Some(selected) if selected == key => {
+                        let _previously_selected = self.selected.take();
+                    }
+                    _ => {}
+                }
+                let _closed_tab = self.tabs.remove(key).unwrap();
+                TabAction::TabClosed(key)
+            },
         }
     }
 
@@ -110,7 +124,14 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
 
                     let label = tab.label(key);
 
-                    tab_bar.push(key, TabLabel::Text(label), view)
+                    let tab_bar = tab_bar.push(key, TabLabel::Text(label), view);
+
+                    match self.selected {
+                        Some(selected_key) if selected_key == key => {
+                            tab_bar.set_active_tab(&selected_key)
+                        }
+                        _ => tab_bar
+                    }
                 }
             );
 
