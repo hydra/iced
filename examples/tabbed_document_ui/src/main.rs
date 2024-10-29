@@ -102,8 +102,8 @@ impl TabbedDocumentUI {
                 match action {
                     ToolbarAction::CloseAllTabs => {
                         let closed_tabs = self.tabs.close_all();
-                        for tab_key in closed_tabs {
-                            Self::on_tab_closed(tab_key)
+                        for (key, kind) in closed_tabs {
+                            self.on_tab_closed(key, kind)
                         }
                     }
                     ToolbarAction::AddHomeTab => {
@@ -119,8 +119,8 @@ impl TabbedDocumentUI {
                     TabAction::TabSelected(key) => {
                         println!("tab selected. key: {:?}", key);
                     }
-                    TabAction::TabClosed(key) => {
-                        Self::on_tab_closed(key);
+                    TabAction::TabClosed(key, kind) => {
+                        self.on_tab_closed(key, kind);
                     }
                     TabAction::TabAction(tab_kind_action) => {
                         match tab_kind_action {
@@ -161,8 +161,16 @@ impl TabbedDocumentUI {
         self.config.lock().unwrap().open_document_paths = open_documents;
     }
 
-    fn on_tab_closed(key: TabKey) {
+    fn on_tab_closed(&mut self, key: TabKey, tab_kind: TabKind) {
         println!("tab closed. key: {:?}", key);
+
+        match tab_kind {
+            TabKind::Document(document_tab) => {
+                let document_key = document_tab.key();
+                let _document = self.documents.remove(document_key);
+            },
+            _ => ()
+        }
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -231,9 +239,9 @@ impl TabbedDocumentUI {
 
         let document_arc = Arc::new(document);
 
-        let _document_key = self.documents.insert(document_arc.clone());
+        let document_key = self.documents.insert(document_arc.clone());
 
-        let document_tab = DocumentTab::new(document_arc);
+        let document_tab = DocumentTab::new(document_key, document_arc);
         let _key = self.tabs.push(TabKind::Document(document_tab));
     }
 }

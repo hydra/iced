@@ -16,9 +16,9 @@ pub enum TabMessage<TKM> {
     TabKindMessage(TabKey, TKM),
 }
 
-pub enum TabAction<TKA> {
+pub enum TabAction<TKA, TK> {
     TabSelected(TabKey),
-    TabClosed(TabKey),
+    TabClosed(TabKey, TK),
     TabAction(TKA),
 }
 
@@ -52,11 +52,14 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
         self.tabs.insert(tab_kind)
     }
 
-    pub fn close_all(&mut self) -> Vec<TabKey> {
-        let closed_tabs: Vec<TabKey> = self.tabs.keys().collect();
+    pub fn close_all(&mut self) -> Vec<(TabKey, TK)> {
+        let closed_tabs: Vec<(TabKey, TK)> = self.tabs.drain().collect();
         let _previously_selected = self.selected.take();
-        self.tabs.clear();
         closed_tabs
+    }
+
+    pub fn get(&self, key: TabKey) -> Option<&TK> {
+        self.tabs.get(key)
     }
 }
 
@@ -74,7 +77,7 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
 impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
     pub fn update(
         &mut self, message: TabMessage<TKM>
-    ) -> TabAction<TKA> {
+    ) -> TabAction<TKA, TK> {
         match message {
             TabMessage::TabKindMessage(key, message) => {
                 let tab = self.tabs.get_mut(key).unwrap();
@@ -93,8 +96,8 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
                     }
                     _ => {}
                 }
-                let _closed_tab = self.tabs.remove(key).unwrap();
-                TabAction::TabClosed(key)
+                let closed_tab = self.tabs.remove(key).unwrap();
+                TabAction::TabClosed(key, closed_tab)
             },
         }
     }

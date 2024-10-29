@@ -1,19 +1,25 @@
 use std::sync::Arc;
 use iced::Element;
-use crate::document::DocumentKind;
+use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocumentMessage;
 use crate::document::text::TextDocumentMessage;
 use crate::tabs::Tab;
 
 pub struct DocumentTab {
-    document_kind: Arc<DocumentKind>
+    key: DocumentKey,
+    document_kind: Arc<DocumentKind>,
 }
 
 impl DocumentTab {
-    pub fn new(document_kind: Arc<DocumentKind>) -> Self {
+    pub fn new(key: DocumentKey, document_kind: Arc<DocumentKind>) -> Self {
         Self {
-            document_kind
+            document_kind,
+            key
         }
+    }
+
+    pub fn key(&self) -> DocumentKey {
+        self.key.clone()
     }
 }
 
