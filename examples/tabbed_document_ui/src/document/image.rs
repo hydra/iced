@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 use iced::{ContentFit, Element, Length};
-use iced::widget::{image, Space};
+use iced::alignment::{Horizontal, Vertical};
+use iced::widget::{image, column, row, container};
+use crate::document::Sidebar;
 
 pub struct ImageDocument {
     pub path: PathBuf,
-    handle: image::Handle
+    handle: image::Handle,
+
+    sidebar: Sidebar,
 }
 
 #[derive(Debug, Clone)]
@@ -20,18 +24,24 @@ impl ImageDocument {
 
         Self {
             path,
-            handle
+            handle,
+            sidebar: Sidebar::default()
         }
     }
 
     pub fn view(&self) -> Element<'_, ImageDocumentMessage> {
+
+        let sidebar = self.sidebar.view()
+            .map(|message|ImageDocumentMessage::None);
 
         let image = image(&self.handle)
             .width(Length::Fill)
             .height(Length::Fill)
             .content_fit(ContentFit::Contain);
 
-        image
+        let ui = row![sidebar, image];
+
+        ui
             .into()
     }
 }
