@@ -52,6 +52,8 @@ pub fn main() -> iced::Result {
             }
         });
 
+    // TODO Update the list of open documents in the config
+
     let config = config.lock().unwrap();
     config::save(&config);
 
