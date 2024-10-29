@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
 use slotmap::SlotMap;
 use iced::widget::{button, column, container, row, text};
-use iced::{Element, Task};
+use iced::{event, window, Element, Event, Subscription, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
 use crate::app_toolbar::{ToolbarAction, ToolbarMessage};
 use crate::config::Config;
@@ -32,6 +32,8 @@ pub fn main() -> iced::Result {
 
     let result = iced::application("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
         .font(NERD_FONT_BYTES)
+        .exit_on_close_request(false)
+        .subscription(TabbedDocumentUI::window_subscription)
         .run_with({
             let config = config.clone();
             move ||{
@@ -52,8 +54,6 @@ pub fn main() -> iced::Result {
             }
         });
 
-    // TODO Update the list of open documents in the config
-
     let config = config.lock().unwrap();
     config::save(&config);
 
@@ -64,6 +64,7 @@ pub fn main() -> iced::Result {
 enum Message {
     TabKindMessage(TabMessage<TabKindMessage>),
     ToolbarMessage(ToolbarMessage),
+    CloseRequested,
 }
 
 struct TabbedDocumentUI {
@@ -82,6 +83,16 @@ impl TabbedDocumentUI {
             config,
             documents: Default::default(),
         }
+    }
+
+    fn window_subscription(&self) -> Subscription<Message> {
+        event::listen_with(|event, _, _| {
+            if let Event::Window(window::Event::CloseRequested) = event {
+                Some(Message::CloseRequested)
+            } else {
+                None
+            }
+        })
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -128,8 +139,26 @@ impl TabbedDocumentUI {
                     }
                 }
             }
+            Message::CloseRequested => {
+                self.update_open_documents();
+
+                return window::get_latest().and_then(window::close);
+            }
         }
         Task::none()
+    }
+
+    /// Update the config with the currently open documents
+    fn update_open_documents(&mut self) {
+        let open_documents: Vec<PathBuf> = self.documents.iter().map(|(_key, document)| {
+            match &**document {
+                DocumentKind::TextDocument(document) => document.path.clone(),
+                DocumentKind::ImageDocument(document) => document.path.clone(),
+            }
+        }).collect();
+        println!("open_documents: {:?}", open_documents);
+
+        self.config.lock().unwrap().open_document_paths = open_documents;
     }
 
     fn on_tab_closed(key: TabKey) {
