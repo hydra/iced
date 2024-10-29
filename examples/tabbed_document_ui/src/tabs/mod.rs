@@ -27,7 +27,7 @@ pub trait Tab {
     type Message;
     type Action;
 
-    fn view(&self) -> Element<'static, Self::Message>;
+    fn view(&self) -> Element<'_, Self::Message>;
     fn label(&self) -> String;
 
     fn update(&mut self, message: Self::Message) -> Self::Action;
@@ -35,7 +35,7 @@ pub trait Tab {
 
 /// The application, which uses re-usable tabs, should implement this
 pub trait AppTabs<TKM, TKA> {
-    fn view<'a>(&self, key: TabKey) -> Element<'a, TKM>;
+    fn view(&self, key: TabKey) -> Element<'_, TKM>;
     fn label(&self, key: TabKey) -> String;
     fn update(&mut self, message: TKM) -> TKA;
 }

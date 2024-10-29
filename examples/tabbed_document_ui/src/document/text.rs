@@ -1,9 +1,16 @@
 use std::fs;
 use std::path::PathBuf;
+use iced::Element;
+use iced::widget::text;
 
 pub struct TextDocument {
     pub path: PathBuf,
     content: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum TextDocumentMessage {
+    None
 }
 
 impl TextDocument {
@@ -17,4 +24,11 @@ impl TextDocument {
             content,
         }
     }
+
+    pub fn view(&self) -> Element<'_, TextDocumentMessage> {
+        let text = text(&self.content);
+
+        text.into()
+    }
 }
+

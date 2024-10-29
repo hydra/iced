@@ -1,7 +1,8 @@
 use std::sync::Arc;
-use iced::{Element, Length};
-use iced::widget::Space;
+use iced::Element;
 use crate::document::DocumentKind;
+use crate::document::image::ImageDocumentMessage;
+use crate::document::text::TextDocumentMessage;
 use crate::tabs::Tab;
 
 pub struct DocumentTab {
@@ -18,7 +19,9 @@ impl DocumentTab {
 
 #[derive(Debug, Clone)]
 pub enum DocumentTabMessage {
-    None
+    None,
+    TextDocumentMessage(TextDocumentMessage),
+    ImageDocumentMessage(ImageDocumentMessage),
 }
 
 #[derive(Debug)]
@@ -30,11 +33,18 @@ impl Tab for DocumentTab {
     type Message = DocumentTabMessage;
     type Action = DocumentTabAction;
 
-    fn view(&self) -> Element<'static, Self::Message> {
-        Space::new(
-            Length::Fill,
-            Length::Fill
-        )
+    fn view(&self) -> Element<'_, Self::Message> {
+
+        let view = match &*self.document_kind {
+            DocumentKind::TextDocument(text_document) => text_document
+                .view()
+                .map(DocumentTabMessage::TextDocumentMessage),
+            DocumentKind::ImageDocument(image_document) => image_document
+                .view()
+                .map(DocumentTabMessage::ImageDocumentMessage),
+        };
+
+        view
             .into()
     }
 
@@ -48,7 +58,9 @@ impl Tab for DocumentTab {
 
     fn update(&mut self, message: Self::Message) -> Self::Action {
         match message {
-            DocumentTabMessage::None => DocumentTabAction::None
+            DocumentTabMessage::None => DocumentTabAction::None,
+            DocumentTabMessage::TextDocumentMessage(_) => DocumentTabAction::None,
+            DocumentTabMessage::ImageDocumentMessage(_) => DocumentTabAction::None,
         }
     }
 }

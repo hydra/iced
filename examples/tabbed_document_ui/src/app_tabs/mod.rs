@@ -20,7 +20,7 @@ pub enum TabKindAction {
 }
 
 impl AppTabs<TabKindMessage, TabKindAction> for TabKind {
-    fn view<'a>(&self, _key: TabKey) -> Element<'a, TabKindMessage> {
+    fn view(&self, _key: TabKey) -> Element<'_, TabKindMessage> {
         match self {
             TabKind::Home(tab) => tab
                 .view()
