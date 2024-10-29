@@ -52,8 +52,6 @@ pub fn main() -> iced::Result {
             }
         });
 
-    // TODO how do we get the value of the `show_on_startup` in the HomeTab instance back into the config?
-
     let config = config.lock().unwrap();
     config::save(&config);
 
