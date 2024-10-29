@@ -1,17 +1,19 @@
+use std::sync::{Arc, Mutex};
 use iced_fonts::{Nerd, NERD_FONT};
 use iced_fonts::nerd::icon_to_char;
 use iced::Element;
 use iced::widget::{text, column, checkbox};
+use crate::config::Config;
 use crate::tabs::Tab;
 
 pub struct HomeTab {
-    show_on_startup: bool
+    config: Arc<Mutex<Config>>
 }
 
 impl HomeTab {
-    pub fn new(show_on_startup: bool) -> Self {
+    pub fn new(config: Arc<Mutex<Config>>) -> Self {
         Self {
-            show_on_startup
+            config
         }
     }
 }
@@ -38,7 +40,13 @@ impl Tab for HomeTab {
         let text = text(format!("{}", icon_to_char(Nerd::Home)).to_string())
             .font(NERD_FONT);
 
-        let show_on_startup_checkbox = checkbox("Show on startup", self.show_on_startup)
+        let show_on_startup_checkbox = checkbox(
+            "Show on startup",
+            self.config
+                .lock()
+                .unwrap()
+                .show_home_on_startup
+            )
             .on_toggle(|value|{
                 HomeTabMessage::ShowOnStartupChanged(value)
             });
@@ -59,7 +67,9 @@ impl Tab for HomeTab {
 
         match message {
             HomeTabMessage::ShowOnStartupChanged(value) => {
-                self.show_on_startup = value;
+                let mut config = self.config.lock().unwrap();
+                config.show_home_on_startup = value;
+
                 HomeTabAction::ShowOnStartupChanged
             }
         }

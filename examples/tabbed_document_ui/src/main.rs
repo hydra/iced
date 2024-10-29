@@ -1,6 +1,6 @@
 //! Tabbed document UI example
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
@@ -20,7 +20,7 @@ mod app_toolbar;
 /// entry point
 pub fn main() -> iced::Result {
 
-    let config = Arc::new(config::load());
+    let config = Arc::new(Mutex::new(config::load()));
 
     let result = iced::application("Tabbed document UI", TabbedDocumentUI::update, TabbedDocumentUI::view)
         .font(NERD_FONT_BYTES)
@@ -29,7 +29,7 @@ pub fn main() -> iced::Result {
             move ||{
                 let mut ui = TabbedDocumentUI::new(config.clone());
 
-                if config.show_home_on_startup {
+                if config.lock().unwrap().show_home_on_startup {
                     ui.add_home();
                 }
 
@@ -39,6 +39,7 @@ pub fn main() -> iced::Result {
 
     // TODO how do we get the value of the `show_on_startup` in the HomeTab instance back into the config?
 
+    let config = config.lock().unwrap();
     config::save(&config);
 
     result
@@ -53,12 +54,12 @@ enum Message {
 struct TabbedDocumentUI {
     tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>,
     toolbar: app_toolbar::Toolbar,
-    config: Arc<Config>
+    config: Arc<Mutex<Config>>
 }
 
 impl TabbedDocumentUI {
 
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(config: Arc<Mutex<Config>>) -> Self {
         Self {
             tabs: Default::default(),
             toolbar: Default::default(),
@@ -158,7 +159,7 @@ impl TabbedDocumentUI {
     }
 
     fn add_home(&mut self) {
-        let home_tab = HomeTab::new(self.config.show_home_on_startup);
+        let home_tab = HomeTab::new(self.config.clone());
         let _key = self.tabs.push(TabKind::Home(home_tab));
     }
 }
