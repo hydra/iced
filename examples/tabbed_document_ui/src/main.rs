@@ -1,5 +1,6 @@
 //! Tabbed document UI example
 
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
 use iced::widget::{button, column, container, row, text};
@@ -7,10 +8,12 @@ use iced::{Element, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
 use crate::app_toolbar::{ToolbarAction, ToolbarMessage};
 use crate::config::Config;
-use crate::home::{HomeTab, HomeTabAction};
+use crate::document_tab::DocumentTab;
+use crate::home_tab::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
 
-mod home;
+mod home_tab;
+mod document_tab;
 mod config;
 
 mod tabs;
@@ -29,8 +32,15 @@ pub fn main() -> iced::Result {
             move ||{
                 let mut ui = TabbedDocumentUI::new(config.clone());
 
-                if config.lock().unwrap().show_home_on_startup {
+                let config = config.lock().unwrap();
+
+                if config.show_home_on_startup {
                     ui.add_home();
+                }
+
+                let documents_to_open = config.open_document_paths.clone();
+                for document_path in documents_to_open {
+                    ui.open_document(document_path)
                 }
 
                 (ui, Task::none())
@@ -104,6 +114,9 @@ impl TabbedDocumentUI {
                                     }
                                 }
                             }
+                            TabKindAction::DocumentTabAction(document_tab_action) => {
+                                println!("document tab action: {:?}", document_tab_action);
+                            }
                         }
                     }
                 }
@@ -161,6 +174,11 @@ impl TabbedDocumentUI {
     fn add_home(&mut self) {
         let home_tab = HomeTab::new(self.config.clone());
         let _key = self.tabs.push(TabKind::Home(home_tab));
+    }
+
+    fn open_document(&mut self, path: PathBuf) {
+        let document_tab = DocumentTab::new(path);
+        let _key = self.tabs.push(TabKind::Document(document_tab));
     }
 }
 

@@ -2,9 +2,20 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct Config {
     pub show_home_on_startup: bool,
+    pub open_document_paths: Vec<PathBuf>
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            show_home_on_startup: true,
+            open_document_paths: vec![],
+        }
+    }
 }
 
 const CONFIG_FILE_NAME: &'static str = "config.json";
