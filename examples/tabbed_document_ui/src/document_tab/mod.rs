@@ -1,16 +1,17 @@
-use std::path::PathBuf;
+use std::sync::Arc;
 use iced::{Element, Length};
 use iced::widget::Space;
+use crate::document::DocumentKind;
 use crate::tabs::Tab;
 
 pub struct DocumentTab {
-    path: PathBuf
+    document_kind: Arc<DocumentKind>
 }
 
 impl DocumentTab {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(document_kind: Arc<DocumentKind>) -> Self {
         Self {
-            path
+            document_kind
         }
     }
 }
@@ -38,7 +39,11 @@ impl Tab for DocumentTab {
     }
 
     fn label(&self) -> String {
-        self.path.to_str().unwrap().to_string()
+        let path = match *self.document_kind {
+            DocumentKind::TextDocument(ref document) => &document.path,
+            DocumentKind::ImageDocument(ref document) => &document.path,
+        };
+        path.to_str().unwrap().to_string()
     }
 
     fn update(&mut self, message: Self::Message) -> Self::Action {

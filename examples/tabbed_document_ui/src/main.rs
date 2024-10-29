@@ -3,11 +3,15 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
+use slotmap::SlotMap;
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
 use crate::app_toolbar::{ToolbarAction, ToolbarMessage};
 use crate::config::Config;
+use crate::document::{DocumentKey, DocumentKind};
+use crate::document::image::ImageDocument;
+use crate::document::text::TextDocument;
 use crate::document_tab::DocumentTab;
 use crate::home_tab::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
@@ -15,6 +19,7 @@ use crate::tabs::{TabAction, TabKey, TabMessage};
 mod home_tab;
 mod document_tab;
 mod config;
+mod document;
 
 mod tabs;
 mod app_tabs;
@@ -64,7 +69,8 @@ enum Message {
 struct TabbedDocumentUI {
     tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>,
     toolbar: app_toolbar::Toolbar,
-    config: Arc<Mutex<Config>>
+    config: Arc<Mutex<Config>>,
+    documents: SlotMap<DocumentKey, Arc<DocumentKind>>,
 }
 
 impl TabbedDocumentUI {
@@ -74,6 +80,7 @@ impl TabbedDocumentUI {
             tabs: Default::default(),
             toolbar: Default::default(),
             config,
+            documents: Default::default(),
         }
     }
 
@@ -177,7 +184,27 @@ impl TabbedDocumentUI {
     }
 
     fn open_document(&mut self, path: PathBuf) {
-        let document_tab = DocumentTab::new(path);
+
+
+        let document = match path.extension().unwrap().to_str().unwrap() {
+            "txt" => {
+                let text_document = TextDocument::new(path.clone());
+
+                DocumentKind::TextDocument(Arc::new(text_document))
+            },
+            "bmp" | "png" | "jpg" | "jpeg" | "svg" => {
+                let image_document = ImageDocument::new(path.clone());
+
+                DocumentKind::ImageDocument(Arc::new(image_document))
+            },
+            _ => unreachable!()
+        };
+
+        let document_arc = Arc::new(document);
+
+        let _document_key = self.documents.insert(document_arc.clone());
+
+        let document_tab = DocumentTab::new(document_arc);
         let _key = self.tabs.push(TabKind::Document(document_tab));
     }
 }
