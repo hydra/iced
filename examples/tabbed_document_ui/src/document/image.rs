@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use iced::{ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
-use iced::widget::{image, column, row, container};
+use iced::widget::{image, row, container};
 use iced::widget::image::viewer;
 use crate::document::Sidebar;
 
