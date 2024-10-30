@@ -67,7 +67,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Clone)]
 enum Message {
-    TabKindMessage(TabMessage<TabKindMessage>),
+    TabMessage(TabMessage<TabKindMessage>),
     ToolbarMessage(ToolbarMessage),
     CloseRequested,
 }
@@ -102,71 +102,70 @@ impl TabbedDocumentUI {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ToolbarMessage(toolbar_message) => {
-                let action = self.toolbar.update(toolbar_message);
-                match action {
-                    ToolbarAction::CloseAllTabs => {
-                        let closed_tabs = self.tabs.close_all();
-                        for (key, kind) in closed_tabs {
-                            self.on_tab_closed(key, kind)
-                        }
-                    }
-                    ToolbarAction::AddHomeTab => {
-                        self.add_home();
-                        println!("added home tab");
+            Message::ToolbarMessage(toolbar_message) => self.on_toolbar_message(toolbar_message),
+            Message::TabMessage(message) => self.on_tab_message(message),
+            Message::CloseRequested => self.on_close_requested(),
+        }
+    }
+
+    fn on_toolbar_message(&mut self, toolbar_message: ToolbarMessage) -> Task<Message> {
+        let action = self.toolbar.update(toolbar_message);
+        match action {
+            ToolbarAction::CloseAllTabs => {
+                let closed_tabs = self.tabs.close_all();
+                let tasks: Vec<_> = closed_tabs.into_iter().map(|(key, kind)|self.on_tab_closed(key, kind)).collect();
+
+                Task::batch(tasks)
+            }
+            ToolbarAction::AddHomeTab => {
+                self.add_home();
+                println!("added home tab");
+
+                Task::none()
+            }
+        }
+    }
+
+    fn on_tab_message(&mut self, message: TabMessage<TabKindMessage>) -> Task<Message> {
+        let action = self.tabs.update(message);
+
+        match action {
+            TabAction::TabSelected(key) => self.on_tab_selected(key),
+            TabAction::TabClosed(key, kind) => self.on_tab_closed(key, kind),
+            TabAction::TabAction(tab_kind_action) => self.on_tab_action(tab_kind_action),
+        }
+    }
+
+    fn on_close_requested(&mut self) -> Task<Message> {
+        self.update_open_documents();
+
+        window::get_latest().and_then(window::close)
+    }
+
+    fn on_tab_selected(&mut self, key: TabKey) -> Task<Message> {
+        println!("tab selected. key: {:?}", key);
+
+        Task::none()
+    }
+
+    fn on_tab_action(&mut self, tab_kind_action: TabKindAction) -> Task<Message> {
+        match tab_kind_action {
+            TabKindAction::HomeTabAction(home_tab_action) => {
+                println!("home tab action: {:?}", home_tab_action);
+                match home_tab_action {
+                    HomeTabAction::ShowOnStartupChanged => {
+                        // TODO something...
                     }
                 }
             }
-            Message::TabKindMessage(message) => {
-                let action = self.tabs.update(message);
-
-                match action {
-                    TabAction::TabSelected(key) => {
-                        println!("tab selected. key: {:?}", key);
-                    }
-                    TabAction::TabClosed(key, kind) => {
-                        self.on_tab_closed(key, kind);
-                    }
-                    TabAction::TabAction(tab_kind_action) => {
-                        match tab_kind_action {
-                            TabKindAction::HomeTabAction(home_tab_action) => {
-                                println!("home tab action: {:?}", home_tab_action);
-                                match home_tab_action {
-                                    HomeTabAction::ShowOnStartupChanged => {
-                                        // TODO something...
-                                    }
-                                }
-                            }
-                            TabKindAction::DocumentTabAction(document_tab_action) => {
-                                println!("document tab action: {:?}", document_tab_action);
-                            }
-                        }
-                    }
-                }
-            }
-            Message::CloseRequested => {
-                self.update_open_documents();
-
-                return window::get_latest().and_then(window::close);
+            TabKindAction::DocumentTabAction(document_tab_action) => {
+                println!("document tab action: {:?}", document_tab_action);
             }
         }
         Task::none()
     }
 
-    /// Update the config with the currently open documents
-    fn update_open_documents(&mut self) {
-        let open_documents: Vec<PathBuf> = self.documents.iter().map(|(_key, document)| {
-            match &**document {
-                DocumentKind::TextDocument(document) => document.path.clone(),
-                DocumentKind::ImageDocument(document) => document.path.clone(),
-            }
-        }).collect();
-        println!("open_documents: {:?}", open_documents);
-
-        self.config.lock().unwrap().open_document_paths = open_documents;
-    }
-
-    fn on_tab_closed(&mut self, key: TabKey, tab_kind: TabKind) {
+    fn on_tab_closed(&mut self, key: TabKey, tab_kind: TabKind) -> Task<Message> {
         println!("tab closed. key: {:?}", key);
 
         match tab_kind {
@@ -176,6 +175,8 @@ impl TabbedDocumentUI {
             },
             _ => ()
         }
+
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -201,7 +202,7 @@ impl TabbedDocumentUI {
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
             .map(|tab_message|{
-                Message::TabKindMessage(tab_message)
+                Message::TabMessage(tab_message)
             })
             .into();
 
@@ -248,6 +249,19 @@ impl TabbedDocumentUI {
 
         let document_tab = DocumentTab::new(document_key, document_arc);
         let _key = self.tabs.push(TabKind::Document(document_tab));
+    }
+
+    /// Update the config with the currently open documents
+    fn update_open_documents(&mut self) {
+        let open_documents: Vec<PathBuf> = self.documents.iter().map(|(_key, document)| {
+            match &**document {
+                DocumentKind::TextDocument(document) => document.path.clone(),
+                DocumentKind::ImageDocument(document) => document.path.clone(),
+            }
+        }).collect();
+        println!("open_documents: {:?}", open_documents);
+
+        self.config.lock().unwrap().open_document_paths = open_documents;
     }
 }
 
