@@ -1,4 +1,4 @@
-use iced::{alignment, Color, Element, Length};
+use iced::{alignment, padding, Color, Element, Length};
 use iced::widget::{container, text};
 
 #[derive(Default)]
@@ -12,6 +12,7 @@ pub enum StatusBarMessage {
 impl StatusBar {
     pub fn view(&self) -> Element<'_, StatusBarMessage> {
         let status_bar = container(text("status bar area"))
+            .padding(padding::horizontal(3))
             .height(32)
             .width(Length::Fill)
             .align_y(alignment::Vertical::Center)
