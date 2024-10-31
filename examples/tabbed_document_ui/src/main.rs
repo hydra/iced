@@ -21,6 +21,7 @@ use crate::config::Config;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
+use crate::document::new::NewDocument;
 use crate::document_tab::DocumentTab;
 use crate::home_tab::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
@@ -136,7 +137,8 @@ impl TabbedDocumentUI {
 
                 Task::none()
             }
-            ToolbarAction::OpenDocument => self.on_toolbar_open_document()
+            ToolbarAction::OpenDocument => self.on_toolbar_open_document(),
+            ToolbarAction::NewDocument => self.on_toolbar_new_document(),
         }
     }
 
@@ -201,6 +203,21 @@ impl TabbedDocumentUI {
         }
     }
 
+    fn on_toolbar_new_document(&mut self) -> Task<Message> {
+
+        let document = DocumentKind::NewDocument(Arc::new(NewDocument::default()));
+
+        let document_arc = Arc::new(document);
+
+        let document_key = self.documents.insert(document_arc.clone());
+
+        let document_tab = DocumentTab::new(document_key, document_arc);
+        let key = self.tabs.push(TabKind::Document(document_tab));
+        self.tabs.activate(key);
+
+        Task::none()
+    }
+
     fn on_tab_selected(&mut self, key: TabKey) -> Task<Message> {
         println!("tab selected. key: {:?}", key);
 
@@ -242,7 +259,8 @@ impl TabbedDocumentUI {
 
         let home_button = button("home")
             .on_press(ToolbarMessage::ShowHome);
-        let new_button = button("new");
+        let new_button = button("new")
+            .on_press(ToolbarMessage::NewDocument);
         let open_button = button("open")
             .on_press(ToolbarMessage::OpenDocument);
         let close_all_button = button("close all")
@@ -334,12 +352,22 @@ impl TabbedDocumentUI {
 
     /// Update the config with the currently open documents
     fn update_open_documents(&mut self) {
-        let open_documents: Vec<PathBuf> = self.documents.iter().map(|(_key, document)| {
-            match &**document {
-                DocumentKind::TextDocument(document) => document.path.clone(),
-                DocumentKind::ImageDocument(document) => document.path.clone(),
-            }
-        }).collect();
+        let open_documents: Vec<PathBuf> = self.documents.iter()
+            .filter(|(_key, document)|{
+                // FIXME avoid this triple de-ref madness
+                match &***document {
+                    DocumentKind::NewDocument(_) => false,
+                    _ => true
+                }
+            })
+            .map(|(_key, document)| {
+                match &**document {
+                    DocumentKind::TextDocument(document) => document.path.clone(),
+                    DocumentKind::ImageDocument(document) => document.path.clone(),
+                    DocumentKind::NewDocument(_) => unreachable!()
+                }
+            })
+            .collect();
         println!("open_documents: {:?}", open_documents);
 
         self.config.lock().unwrap().open_document_paths = open_documents;

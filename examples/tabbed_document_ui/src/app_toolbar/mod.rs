@@ -3,6 +3,7 @@ pub enum ToolbarMessage {
     ShowHome,
     CloseAllTabs,
     OpenDocument,
+    NewDocument,
 }
 
 #[derive(Debug)]
@@ -10,6 +11,7 @@ pub enum ToolbarAction {
     ShowHome,
     CloseAllTabs,
     OpenDocument,
+    NewDocument,
 }
 
 #[derive(Default)]
@@ -26,6 +28,9 @@ impl Toolbar {
             }
             ToolbarMessage::OpenDocument => {
                 ToolbarAction::OpenDocument
+            }
+            ToolbarMessage::NewDocument => {
+                ToolbarAction::NewDocument
             }
         }
     }

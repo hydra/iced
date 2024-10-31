@@ -2,6 +2,7 @@ use std::sync::Arc;
 use iced::Element;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocumentMessage;
+use crate::document::new::NewDocumentMessage;
 use crate::document::text::TextDocumentMessage;
 use crate::tabs::Tab;
 
@@ -28,6 +29,7 @@ pub enum DocumentTabMessage {
     None,
     TextDocumentMessage(TextDocumentMessage),
     ImageDocumentMessage(ImageDocumentMessage),
+    NewDocumentMessage(NewDocumentMessage),
 }
 
 #[derive(Debug)]
@@ -48,6 +50,9 @@ impl Tab for DocumentTab {
             DocumentKind::ImageDocument(image_document) => image_document
                 .view()
                 .map(DocumentTabMessage::ImageDocumentMessage),
+            DocumentKind::NewDocument(new_document) => new_document
+                .view()
+                .map(DocumentTabMessage::NewDocumentMessage),
         };
 
         view
@@ -55,11 +60,11 @@ impl Tab for DocumentTab {
     }
 
     fn label(&self) -> String {
-        let path = match *self.document_kind {
-            DocumentKind::TextDocument(ref document) => &document.path,
-            DocumentKind::ImageDocument(ref document) => &document.path,
-        };
-        path.to_str().unwrap().to_string()
+        match *self.document_kind {
+            DocumentKind::TextDocument(ref document) => document.path.to_str().unwrap().to_string(),
+            DocumentKind::ImageDocument(ref document) => document.path.to_str().unwrap().to_string(),
+            DocumentKind::NewDocument(ref document) => "New".to_string()
+        }
     }
 
     fn update(&mut self, message: Self::Message) -> Self::Action {
@@ -67,6 +72,7 @@ impl Tab for DocumentTab {
             DocumentTabMessage::None => DocumentTabAction::None,
             DocumentTabMessage::TextDocumentMessage(_) => DocumentTabAction::None,
             DocumentTabMessage::ImageDocumentMessage(_) => DocumentTabAction::None,
+            DocumentTabMessage::NewDocumentMessage(_) => DocumentTabAction::None,
         }
     }
 }
