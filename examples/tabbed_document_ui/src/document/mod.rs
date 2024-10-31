@@ -18,9 +18,9 @@ new_key_type! {
 }
 
 pub enum DocumentKind {
-    TextDocument(Arc<TextDocument>),
-    ImageDocument(Arc<ImageDocument>),
-    NewDocument(Arc<NewDocument>),
+    TextDocument(TextDocument),
+    ImageDocument(ImageDocument),
+    NewDocument(NewDocument),
 }
 
 #[derive(Default)]

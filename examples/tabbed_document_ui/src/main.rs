@@ -206,7 +206,7 @@ impl TabbedDocumentUI {
 
     fn on_toolbar_new_document(&mut self) -> Task<Message> {
 
-        let document = DocumentKind::NewDocument(Arc::new(NewDocument::default()));
+        let document = DocumentKind::NewDocument(NewDocument::default());
 
         let document_arc = Arc::new(document);
 
@@ -331,11 +331,11 @@ impl TabbedDocumentUI {
         let document = if SUPPORTED_TEXT_EXTENSIONS.contains(&extension) {
             let text_document = TextDocument::new(path.clone());
 
-            DocumentKind::TextDocument(Arc::new(text_document))
+            DocumentKind::TextDocument(text_document)
         } else if SUPPORTED_IMAGE_EXTENSIONS.contains(&extension) {
             let image_document = ImageDocument::new(path.clone());
 
-            DocumentKind::ImageDocument(Arc::new(image_document))
+            DocumentKind::ImageDocument(image_document)
         } else {
             return Err(OpenDocumentError::UnsupportedFileExtension { extension: extension.to_string() });
         };
