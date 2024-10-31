@@ -71,20 +71,17 @@ impl Tab for DocumentTab {
     }
 
     fn update(&mut self, message: Self::Message) -> Self::Action {
-        match message {
-            DocumentTabMessage::None => DocumentTabAction::None,
-            DocumentTabMessage::TextDocumentMessage(_) => DocumentTabAction::None,
-            DocumentTabMessage::ImageDocumentMessage(_) => DocumentTabAction::None,
-            DocumentTabMessage::NewDocumentMessage(message) => {
-                match &*self.document_kind {
-                    DocumentKind::NewDocument(document) => {
-                        let _action = document.update(message);
-
-                        DocumentTabAction::None
-                    }
-                    _ => unreachable!()
-                }
+        match (&*self.document_kind, message) {
+            (DocumentKind::TextDocument(document), DocumentTabMessage::TextDocumentMessage(_message)) => DocumentTabAction::None,
+            (DocumentKind::ImageDocument(document), DocumentTabMessage::ImageDocumentMessage(message)) => {
+                let _action = document.update(message);
+                DocumentTabAction::None
             },
+            (DocumentKind::NewDocument(document), DocumentTabMessage::NewDocumentMessage(message)) => {
+                let _action = document.update(message);
+                DocumentTabAction::None
+            },
+            _ => unreachable!()
         }
     }
 }

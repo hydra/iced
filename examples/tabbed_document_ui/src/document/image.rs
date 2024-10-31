@@ -1,19 +1,39 @@
 use std::path::PathBuf;
+use std::sync::Mutex;
 use iced::{ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::{image, row, container};
 use iced::widget::image::viewer;
 use crate::document::{Sidebar, SidebarItem};
 
+
+#[derive(Debug, Clone, Default)]
+pub struct Coordinate {
+    x: u32,
+    y: u32,
+}
+
 pub struct ImageDocument {
     pub path: PathBuf,
     handle: image::Handle,
 
+    state: Mutex<ImageDocumentState>,
+
     sidebar: Sidebar,
+}
+
+#[derive(Default)]
+pub struct ImageDocumentState {
+    last_clicked: Option<Coordinate>,
 }
 
 #[derive(Debug, Clone)]
 pub enum ImageDocumentMessage {
+    None,
+    ImageClicked(Coordinate),
+}
+
+pub enum ImageDocumentAction {
     None
 }
 
@@ -35,7 +55,8 @@ impl ImageDocument {
         Self {
             path,
             handle,
-            sidebar
+            sidebar,
+            state: Mutex::new(Default::default())
         }
     }
 
@@ -72,5 +93,13 @@ impl ImageDocument {
 
         ui
             .into()
+    }
+
+    pub fn update(&self, message: ImageDocumentMessage) -> ImageDocumentAction {
+        match message {
+            ImageDocumentMessage::None => (),
+            ImageDocumentMessage::ImageClicked(coordinate) => { self.state.lock().unwrap().last_clicked = Some(coordinate); }
+        }
+        ImageDocumentAction::None
     }
 }
