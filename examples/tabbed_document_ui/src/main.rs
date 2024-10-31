@@ -206,7 +206,6 @@ impl TabbedDocumentUI {
             })
             .into();
 
-        // FIXME not displayed when no tabs are present.
         let status_bar = text("status bar area");
 
         let ui: Element<'_, Message> =

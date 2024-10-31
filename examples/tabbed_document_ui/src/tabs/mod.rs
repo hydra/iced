@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use iced_aw::style::tab_bar;
 use iced_aw::TabLabel;
 use slotmap::{new_key_type, SlotMap};
-use iced::Element;
+use iced::{Element, Length};
 
 new_key_type! {
     /// A key for a tab
@@ -140,6 +140,7 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
             );
 
         let tab_bar: Element<'tk, TabMessage<TKM>> = tab_bar
+            .height(Length::Fill)
             .into();
 
         tab_bar
