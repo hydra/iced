@@ -9,8 +9,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
 use slotmap::SlotMap;
-use iced::widget::{button, column, container, row, text};
-use iced::{alignment, event, window, Color, Element, Event, Length, Subscription, Task};
+use iced::widget::{button, column, container, row};
+use iced::{event, window, Element, Event, Subscription, Task};
+use crate::app_status_bar::{StatusBar, StatusBarMessage};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
 use crate::app_toolbar::{ToolbarAction, ToolbarMessage};
 use crate::config::Config;
@@ -29,6 +30,7 @@ mod document;
 mod tabs;
 mod app_tabs;
 mod app_toolbar;
+mod app_status_bar;
 
 /// entry point
 pub fn main() -> iced::Result {
@@ -70,6 +72,7 @@ enum Message {
     TabMessage(TabMessage<TabKindMessage>),
     ToolbarMessage(ToolbarMessage),
     CloseRequested,
+    StatusBarMessage(StatusBarMessage),
 }
 
 struct TabbedDocumentUI {
@@ -77,6 +80,7 @@ struct TabbedDocumentUI {
     toolbar: app_toolbar::Toolbar,
     config: Arc<Mutex<Config>>,
     documents: SlotMap<DocumentKey, Arc<DocumentKind>>,
+    status_bar: StatusBar
 }
 
 impl TabbedDocumentUI {
@@ -87,6 +91,7 @@ impl TabbedDocumentUI {
             toolbar: Default::default(),
             config,
             documents: Default::default(),
+            status_bar: Default::default(),
         }
     }
 
@@ -102,9 +107,10 @@ impl TabbedDocumentUI {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ToolbarMessage(toolbar_message) => self.on_toolbar_message(toolbar_message),
+            Message::ToolbarMessage(message) => self.on_toolbar_message(message),
             Message::TabMessage(message) => self.on_tab_message(message),
             Message::CloseRequested => self.on_close_requested(),
+            Message::StatusBarMessage(message) => self.on_status_bar_message(message)
         }
     }
 
@@ -134,6 +140,13 @@ impl TabbedDocumentUI {
             TabAction::TabClosed(key, kind) => self.on_tab_closed(key, kind),
             TabAction::TabAction(tab_kind_action) => self.on_tab_action(tab_kind_action),
         }
+    }
+
+    fn on_status_bar_message(&self, message: StatusBarMessage) -> Task<Message> {
+        match message {
+            StatusBarMessage::None => {}
+        }
+        Task::none()
     }
 
     fn on_close_requested(&mut self) -> Task<Message> {
@@ -206,18 +219,18 @@ impl TabbedDocumentUI {
             })
             .into();
 
-        let status_bar = container(text("status bar area"))
-            .height(32)
-            .width(Length::Fill)
-            .align_y(alignment::Vertical::Center)
-            .style(|_|container::background(Color::parse("#555").unwrap()));
+        let mapped_status_bar: Element<'_, Message> = self.status_bar.view()
+            .map(|status_bar_message|{
+                Message::StatusBarMessage(status_bar_message)
+            })
+            .into();
 
         let ui: Element<'_, Message> =
             column![
                 // item              desired layout
                 mapped_toolbar,   // height: auto
                 mapped_tab_bar,   // height: fill
-                status_bar        // height: auto
+                mapped_status_bar // height: auto
             ]
                 .into();
 
@@ -230,8 +243,6 @@ impl TabbedDocumentUI {
     }
 
     fn open_document(&mut self, path: PathBuf) {
-
-
         let document = match path.extension().unwrap().to_str().unwrap() {
             "txt" => {
                 let text_document = TextDocument::new(path.clone());
