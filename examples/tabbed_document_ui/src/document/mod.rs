@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use slotmap::new_key_type;
-use iced::{Alignment, Element, Length};
-use iced::widget::{container, horizontal_space};
+use iced::{Alignment, Background, Color, Element, Length};
+use iced::widget::{container, horizontal_space, Space};
 use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
 
@@ -28,19 +28,24 @@ pub enum SidebarMessage {
 
 impl Sidebar {
     pub fn view(&self) -> Element<'_, SidebarMessage> {
+
         let sidebar = container(
             iced::widget::column![
-                "Information",
+                iced::widget::text("Information"),
                 // TODO add sidebar item elements from `self`
-                horizontal_space()
+                container(Space::new(
+                    Length::Fill,
+                    Length::Fill
+                ))
             ]
                 .spacing(0)
                 .padding(0)
                 .width(200)
                 .align_x(Alignment::Start),
         )
-            .style(container::rounded_box)
-            .center_y(Length::Fill);
+            .height(Length::Fill)
+            .width(200)
+            .style(|_theme|container::dark(_theme));
 
         sidebar
             .into()
