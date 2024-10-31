@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
 use slotmap::SlotMap;
 use iced::widget::{button, column, container, row, text};
-use iced::{event, window, Element, Event, Subscription, Task};
+use iced::{alignment, event, window, Color, Element, Event, Length, Subscription, Task};
 use crate::app_tabs::{TabKind, TabKindAction, TabKindMessage};
 use crate::app_toolbar::{ToolbarAction, ToolbarMessage};
 use crate::config::Config;
@@ -206,7 +206,11 @@ impl TabbedDocumentUI {
             })
             .into();
 
-        let status_bar = text("status bar area");
+        let status_bar = container(text("status bar area"))
+            .height(32)
+            .width(Length::Fill)
+            .align_y(alignment::Vertical::Center)
+            .style(|_|container::background(Color::parse("#555").unwrap()));
 
         let ui: Element<'_, Message> =
             column![
