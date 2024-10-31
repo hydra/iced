@@ -19,7 +19,7 @@ Implementing this forces the developer to learn about some key points of the fra
     - [x] re-sizable, contents adjust to fit.
 - Toolbar
     - 'Home' button
-        - [ ] which when clicks shows a home tab.
+        - [x] which when clicks shows a home tab.
         - [ ] if the home tab is already open, it should switch to it.
 	- 'Open' button
 	    - [ ] When clicked, shows a native file selector dialog which allows the user to choose a file
