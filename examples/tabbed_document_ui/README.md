@@ -36,7 +36,7 @@ Implementing this forces the developer to learn about some key points of the fra
 	- [ ] When a tab is closed, the next most recently used tab is made active.
 - Tab content
 	- [x] Displays the content for the tab.
-	- [ ] Each tab content must maintain it's state, without expensive re-loads/refreshing of the state, no re-loading of files.
+	- [x] Each tab content must maintain it's state, without expensive re-loads/refreshing of the state, no re-loading of files.
     - [ ] Scroll bars should appear if the content does not fit the window.
 	- Tabs
 		- 'Home' tab
@@ -64,7 +64,7 @@ Implementing this forces the developer to learn about some key points of the fra
 			- [ ] Maintain caret position.
 			- [ ] Content must be loaded in a thread or async, in the background.
 			- Info sidebar with a grid of key/value items
-				- [ ] File path
+				- [x] File path
 				- [ ] Selection information
 		- 'Image' tab.
 			- [x] Filename must appear in tab.
@@ -76,7 +76,7 @@ Implementing this forces the developer to learn about some key points of the fra
 			- [ ] Maintain X/Y coordinates of last click of anywhere on the image.
 			- [ ] Content must be loaded in a thread or async, in the background.
 			- Info sidebar with a grid of key/value items
-				- [ ] File path
+				- [x] File path
 				- [ ] Last-clicked X/Y coordinate information
                 - [ ] Image size. (width, height).
 - Application state must be loaded on program start, and saved as appropriate.
