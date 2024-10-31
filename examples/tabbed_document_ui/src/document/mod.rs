@@ -39,6 +39,15 @@ impl Sidebar {
         self.items.push(item);
     }
 
+    pub fn update_item<F>(&mut self, key: &str, update_fn: F)
+    where
+        F: FnMut(&mut SidebarItem) -> ()
+    {
+        // TODO do this properly...
+        let item = self.items.get_mut(0).unwrap();
+        update_fn(item);
+    }
+
     pub fn view(&self) -> Element<'_, SidebarMessage> {
 
         let items = column(self.items.iter().map(SidebarItem::view));

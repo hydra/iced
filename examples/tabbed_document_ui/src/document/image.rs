@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use iced::{ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
+use iced::application::Update;
 use iced::widget::{image, row, container};
 use iced::widget::image::viewer;
 use crate::document::{Sidebar, SidebarItem};
@@ -19,12 +20,13 @@ pub struct ImageDocument {
 
     state: Mutex<ImageDocumentState>,
 
-    sidebar: Sidebar,
+
 }
 
 #[derive(Default)]
 pub struct ImageDocumentState {
     last_clicked: Option<Coordinate>,
+    sidebar: Sidebar,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +40,7 @@ pub enum ImageDocumentAction {
 }
 
 const SIDEBAR_ITEM_PATH: &str = "PATH";
+const SIDEBAR_ITEM_LAST_CLICKED_COORDINATE: &str = "LAST_CLICKED_COORDINATE";
 
 impl ImageDocument {
     pub fn new(path: PathBuf) -> Self {
@@ -46,23 +49,28 @@ impl ImageDocument {
         let handle = image::Handle::from_path(&path);
 
         let mut sidebar = Sidebar::default();
+
         sidebar.add_item(SidebarItem::Text(
             SIDEBAR_ITEM_PATH,
             "Path".to_string(),
             path.to_str().unwrap().to_string()
         ));
 
+        sidebar.add_item(SidebarItem::Text(
+            SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,
+            "Last clicked coordinate".to_string(),
+            "None".to_string()
+        ));
         Self {
             path,
             handle,
-            sidebar,
-            state: Mutex::new(Default::default())
+            state: Mutex::new(Default::default()),
         }
     }
 
     pub fn view(&self) -> Element<'_, ImageDocumentMessage> {
 
-        let sidebar = self.sidebar.view()
+        let sidebar = self.state.lock().unwrap().sidebar.view()
             .map(|_message|ImageDocumentMessage::None);
 
         // FIXME the image should be:
@@ -98,7 +106,18 @@ impl ImageDocument {
     pub fn update(&self, message: ImageDocumentMessage) -> ImageDocumentAction {
         match message {
             ImageDocumentMessage::None => (),
-            ImageDocumentMessage::ImageClicked(coordinate) => { self.state.lock().unwrap().last_clicked = Some(coordinate); }
+            ImageDocumentMessage::ImageClicked(coordinate) => {
+
+                let mut state = self.state.lock().unwrap();
+
+                state.last_clicked = Some(coordinate);
+
+                state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
+                    if let SidebarItem::Text(key, label, value) = item {
+                        *value = "foo".to_string();
+                    };
+                });
+            }
         }
         ImageDocumentAction::None
     }
