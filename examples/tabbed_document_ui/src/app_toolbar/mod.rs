@@ -2,12 +2,14 @@
 pub enum ToolbarMessage {
     ShowHome,
     CloseAllTabs,
+    OpenDocument,
 }
 
 #[derive(Debug)]
 pub enum ToolbarAction {
     ShowHome,
     CloseAllTabs,
+    OpenDocument,
 }
 
 #[derive(Default)]
@@ -21,6 +23,9 @@ impl Toolbar {
             }
             ToolbarMessage::CloseAllTabs => {
                 ToolbarAction::CloseAllTabs
+            }
+            ToolbarMessage::OpenDocument => {
+                ToolbarAction::OpenDocument
             }
         }
     }

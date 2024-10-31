@@ -5,10 +5,13 @@
 //! {"show_home_on_startup":true,"open_document_paths":["examples/tabbed_document_ui/assets/text_file_1.txt","examples/tabbed_document_ui/assets/text_file_2.txt","examples/tabbed_document_ui/assets/image_file_1.bmp"]}
 //! ```
 
+use std::path;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use iced_fonts::NERD_FONT_BYTES;
+use rfd::{MessageDialog, MessageLevel};
 use slotmap::SlotMap;
+use thiserror::Error;
 use iced::widget::{button, column, container, row};
 use iced::{event, window, Element, Event, Subscription, Task};
 use crate::app_status_bar::{StatusBar, StatusBarMessage};
@@ -54,7 +57,7 @@ pub fn main() -> iced::Result {
 
                 let documents_to_open = config.open_document_paths.clone();
                 for document_path in documents_to_open {
-                    ui.open_document(document_path)
+                    let _ = ui.open_document(&document_path);
                 }
 
                 (ui, Task::none())
@@ -73,6 +76,7 @@ enum Message {
     ToolbarMessage(ToolbarMessage),
     CloseRequested,
     StatusBarMessage(StatusBarMessage),
+    None,
 }
 
 struct TabbedDocumentUI {
@@ -82,6 +86,9 @@ struct TabbedDocumentUI {
     documents: SlotMap<DocumentKey, Arc<DocumentKind>>,
     status_bar: StatusBar
 }
+
+const SUPPORTED_IMAGE_EXTENSIONS: [&'static str; 5] = ["bmp", "png", "jpg", "jpeg", "svg"];
+const SUPPORTED_TEXT_EXTENSIONS: [&'static str; 1] = ["txt"];
 
 impl TabbedDocumentUI {
 
@@ -109,8 +116,9 @@ impl TabbedDocumentUI {
         match message {
             Message::ToolbarMessage(message) => self.on_toolbar_message(message),
             Message::TabMessage(message) => self.on_tab_message(message),
+            Message::StatusBarMessage(message) => self.on_status_bar_message(message),
             Message::CloseRequested => self.on_close_requested(),
-            Message::StatusBarMessage(message) => self.on_status_bar_message(message)
+            Message::None => { Task::none() }
         }
     }
 
@@ -128,6 +136,7 @@ impl TabbedDocumentUI {
 
                 Task::none()
             }
+            ToolbarAction::OpenDocument => self.on_toolbar_open_document()
         }
     }
 
@@ -148,10 +157,48 @@ impl TabbedDocumentUI {
         Task::none()
     }
 
+
     fn on_close_requested(&mut self) -> Task<Message> {
         self.update_open_documents();
 
         window::get_latest().and_then(window::close)
+    }
+
+    fn on_toolbar_open_document(&mut self) -> Task<Message> {
+        let all_extensions: Vec<_> = SUPPORTED_TEXT_EXTENSIONS.iter().chain(&SUPPORTED_IMAGE_EXTENSIONS).collect();
+
+        let current_directory = std::env::current_dir().unwrap();
+
+        let result = rfd::FileDialog::new()
+            .add_filter("All", &all_extensions)
+            .add_filter("Text", &SUPPORTED_TEXT_EXTENSIONS)
+            .add_filter("Image", &SUPPORTED_IMAGE_EXTENSIONS)
+            .set_directory(current_directory)
+            .pick_file()
+            .map(|path| {
+                self.open_document(&path)
+            });
+
+        println!("open file result: {:?}", result);
+
+        async fn show_error(error: OpenDocumentError) {
+            // TODO set the parent window handle correctly, see `MessageDialog::set_parent`
+            let _ = MessageDialog::new()
+                .set_level(MessageLevel::Error)
+                .set_title("Open document error")
+                .set_description(format!("Opening document failed. reason: {}", error.to_string()))
+                .set_buttons(rfd::MessageButtons::Ok)
+                .show();
+        }
+
+        if let Some(Err(error)) = result {
+            // Note: a Task is required due to a focus issue.
+            //       on windows the task the dialog is not displayed until 'alt' is pressed (yes, really)
+            //       observed if MessageDialog::show is called now instead of using Task::perform
+            Task::perform(show_error(error), |_result| Message::None)
+        } else {
+            Task::none()
+        }
     }
 
     fn on_tab_selected(&mut self, key: TabKey) -> Task<Message> {
@@ -196,7 +243,8 @@ impl TabbedDocumentUI {
         let home_button = button("home")
             .on_press(ToolbarMessage::ShowHome);
         let new_button = button("new");
-        let open_button = button("open");
+        let open_button = button("open")
+            .on_press(ToolbarMessage::OpenDocument);
         let close_all_button = button("close all")
             .on_press(ToolbarMessage::CloseAllTabs);
 
@@ -254,19 +302,23 @@ impl TabbedDocumentUI {
         }
     }
 
-    fn open_document(&mut self, path: PathBuf) {
-        let document = match path.extension().unwrap().to_str().unwrap() {
-            "txt" => {
-                let text_document = TextDocument::new(path.clone());
+    fn open_document(&mut self, path: &PathBuf) -> Result<(), OpenDocumentError>{
 
-                DocumentKind::TextDocument(Arc::new(text_document))
-            },
-            "bmp" | "png" | "jpg" | "jpeg" | "svg" => {
-                let image_document = ImageDocument::new(path.clone());
+        let path = path::absolute(path)
+            .or_else(|cause|Err(OpenDocumentError::IoError {cause}))?;
 
-                DocumentKind::ImageDocument(Arc::new(image_document))
-            },
-            _ => unreachable!()
+        let extension = path.extension().unwrap().to_str().unwrap();
+
+        let document = if SUPPORTED_TEXT_EXTENSIONS.contains(&extension) {
+            let text_document = TextDocument::new(path.clone());
+
+            DocumentKind::TextDocument(Arc::new(text_document))
+        } else if SUPPORTED_IMAGE_EXTENSIONS.contains(&extension) {
+            let image_document = ImageDocument::new(path.clone());
+
+            DocumentKind::ImageDocument(Arc::new(image_document))
+        } else {
+            return Err(OpenDocumentError::UnsupportedFileExtension { extension: extension.to_string() });
         };
 
         let document_arc = Arc::new(document);
@@ -274,7 +326,10 @@ impl TabbedDocumentUI {
         let document_key = self.documents.insert(document_arc.clone());
 
         let document_tab = DocumentTab::new(document_key, document_arc);
-        let _key = self.tabs.push(TabKind::Document(document_tab));
+        let key = self.tabs.push(TabKind::Document(document_tab));
+        self.tabs.activate(key);
+
+        Ok(())
     }
 
     /// Update the config with the currently open documents
@@ -291,4 +346,10 @@ impl TabbedDocumentUI {
     }
 }
 
-
+#[derive(Error, Debug)]
+enum OpenDocumentError {
+    #[error("Unsupported file type. extension: {extension}")]
+    UnsupportedFileExtension{extension: String},
+    #[error("IO error, cause: {cause}")]
+    IoError{cause: std::io::Error},
+}

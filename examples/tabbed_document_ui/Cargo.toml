@@ -20,6 +20,8 @@ slotmap = "1.0.7"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = { version = "1.0.128" }
 
+rfd = { version = "0.15.0" }
+thiserror = "1.0.65"
 
 [lints]
 workspace = true
