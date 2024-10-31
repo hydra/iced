@@ -49,7 +49,7 @@ pub fn main() -> iced::Result {
                 let config = config.lock().unwrap();
 
                 if config.show_home_on_startup {
-                    ui.add_home();
+                    ui.show_home();
                 }
 
                 let documents_to_open = config.open_document_paths.clone();
@@ -123,9 +123,8 @@ impl TabbedDocumentUI {
 
                 Task::batch(tasks)
             }
-            ToolbarAction::AddHomeTab => {
-                self.add_home();
-                println!("added home tab");
+            ToolbarAction::ShowHome => {
+                self.show_home();
 
                 Task::none()
             }
@@ -195,7 +194,7 @@ impl TabbedDocumentUI {
     fn view(&self) -> Element<'_, Message> {
 
         let home_button = button("home")
-            .on_press(ToolbarMessage::AddHome);
+            .on_press(ToolbarMessage::ShowHome);
         let new_button = button("new");
         let open_button = button("open");
         let close_all_button = button("close all")
@@ -237,9 +236,22 @@ impl TabbedDocumentUI {
         container(ui).into()
     }
 
-    fn add_home(&mut self) {
-        let home_tab = HomeTab::new(self.config.clone());
-        let _key = self.tabs.push(TabKind::Home(home_tab));
+    fn show_home(&mut self) {
+        let home_tab = self.tabs.iter().find(|(key, value)|
+            match value {
+                TabKind::Home(_) => true,
+                _ => false
+            }
+        );
+
+        if let Some((key, _tab)) = home_tab {
+            self.tabs.activate(key);
+        } else {
+            let home_tab = HomeTab::new(self.config.clone());
+            let _key = self.tabs.push(TabKind::Home(home_tab));
+
+            println!("added home tab");
+        }
     }
 
     fn open_document(&mut self, path: PathBuf) {

@@ -20,7 +20,7 @@ Implementing this forces the developer to learn about some key points of the fra
 - Toolbar
     - 'Home' button
         - [x] which when clicks shows a home tab.
-        - [ ] if the home tab is already open, it should switch to it.
+        - [x] if the home tab is already open, it should switch to it.
 	- 'Open' button
 	    - [ ] When clicked, shows a native file selector dialog which allows the user to choose a file
         - [ ] When a file is opened, a tab appears and depending on the file type, it shows different content in the tab. (e.g. '.txt' text shows the 'Text' tab, '.bmp' shows the 'Image' tab).

@@ -1,12 +1,12 @@
 #[derive(Debug, Clone)]
 pub enum ToolbarMessage {
-    AddHome,
+    ShowHome,
     CloseAllTabs,
 }
 
 #[derive(Debug)]
 pub enum ToolbarAction {
-    AddHomeTab,
+    ShowHome,
     CloseAllTabs,
 }
 
@@ -16,8 +16,8 @@ pub struct Toolbar {}
 impl Toolbar {
     pub fn update(&mut self, message: ToolbarMessage) -> ToolbarAction {
         match message {
-            ToolbarMessage::AddHome => {
-                ToolbarAction::AddHomeTab
+            ToolbarMessage::ShowHome => {
+                ToolbarAction::ShowHome
             }
             ToolbarMessage::CloseAllTabs => {
                 ToolbarAction::CloseAllTabs

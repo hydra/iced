@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use iced_aw::style::tab_bar;
 use iced_aw::TabLabel;
 use slotmap::{new_key_type, SlotMap};
+use slotmap::basic::Iter;
 use iced::{Element, Length};
 
 new_key_type! {
@@ -52,10 +53,18 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
         self.tabs.insert(tab_kind)
     }
 
+    pub fn activate(&mut self, key: TabKey) {
+        let _previously_selected = self.selected.replace(key);
+    }
+
     pub fn close_all(&mut self) -> Vec<(TabKey, TK)> {
         let closed_tabs: Vec<(TabKey, TK)> = self.tabs.drain().collect();
         let _previously_selected = self.selected.take();
         closed_tabs
+    }
+
+    pub fn iter(&self) -> Iter<'_, TabKey, TK> {
+        self.tabs.iter()
     }
 
     pub fn get(&self, key: TabKey) -> Option<&TK> {
