@@ -5,6 +5,7 @@
 //! {"show_home_on_startup":true,"open_document_paths":["examples/tabbed_document_ui/assets/text_file_1.txt","examples/tabbed_document_ui/assets/text_file_2.txt","examples/tabbed_document_ui/assets/image_file_1.bmp"]}
 //! ```
 
+use std::cell::RefCell;
 use std::path;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

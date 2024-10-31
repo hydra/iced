@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 use iced::Element;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocumentMessage;
@@ -14,8 +15,8 @@ pub struct DocumentTab {
 impl DocumentTab {
     pub fn new(key: DocumentKey, document_kind: Arc<DocumentKind>) -> Self {
         Self {
+            key,
             document_kind,
-            key
         }
     }
 
@@ -50,9 +51,11 @@ impl Tab for DocumentTab {
             DocumentKind::ImageDocument(image_document) => image_document
                 .view()
                 .map(DocumentTabMessage::ImageDocumentMessage),
-            DocumentKind::NewDocument(new_document) => new_document
-                .view()
-                .map(DocumentTabMessage::NewDocumentMessage),
+            DocumentKind::NewDocument(new_document) => {
+                new_document
+                    .view()
+                    .map(DocumentTabMessage::NewDocumentMessage)
+            },
         };
 
         view
@@ -72,7 +75,16 @@ impl Tab for DocumentTab {
             DocumentTabMessage::None => DocumentTabAction::None,
             DocumentTabMessage::TextDocumentMessage(_) => DocumentTabAction::None,
             DocumentTabMessage::ImageDocumentMessage(_) => DocumentTabAction::None,
-            DocumentTabMessage::NewDocumentMessage(_) => DocumentTabAction::None,
+            DocumentTabMessage::NewDocumentMessage(message) => {
+                match &*self.document_kind {
+                    DocumentKind::NewDocument(document) => {
+                        let _action = document.update(message);
+
+                        DocumentTabAction::None
+                    }
+                    _ => unreachable!()
+                }
+            },
         }
     }
 }
