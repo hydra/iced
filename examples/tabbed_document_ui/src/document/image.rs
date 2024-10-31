@@ -42,7 +42,7 @@ impl ImageDocument {
     pub fn view(&self) -> Element<'_, ImageDocumentMessage> {
 
         let sidebar = self.sidebar.view()
-            .map(|message|ImageDocumentMessage::None);
+            .map(|_message|ImageDocumentMessage::None);
 
         // FIXME the image should be:
         //       * top-left justified

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use iced_fonts::{Nerd, NERD_FONT};
 use iced_fonts::nerd::icon_to_char;
 use iced::{padding, Element, Length};
-use iced::alignment::{Horizontal, Vertical};
+use iced::alignment::{Horizontal};
 use iced::widget::{text, column, checkbox, container, row, horizontal_space};
 use crate::config::Config;
 use crate::tabs::Tab;

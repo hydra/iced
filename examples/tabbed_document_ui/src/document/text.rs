@@ -43,7 +43,7 @@ impl TextDocument {
     pub fn view(&self) -> Element<'_, TextDocumentMessage> {
 
         let sidebar = self.sidebar.view()
-            .map(|message|TextDocumentMessage::None);
+            .map(|_message|TextDocumentMessage::None);
 
         let text_content = text(&self.content);
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use slotmap::new_key_type;
-use iced::{widget, Alignment, Background, Color, Element, Length};
-use iced::widget::{column, container, horizontal_space, row, Space};
+use iced::{widget, Alignment, Element, Length};
+use iced::widget::{column, container, row, Space};
 use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
 
