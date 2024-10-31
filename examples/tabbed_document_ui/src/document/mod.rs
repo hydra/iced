@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use slotmap::new_key_type;
-use iced::{Alignment, Background, Color, Element, Length};
-use iced::widget::{container, horizontal_space, Space};
+use iced::{widget, Alignment, Background, Color, Element, Length};
+use iced::widget::{column, container, horizontal_space, row, Space};
 use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
 
@@ -19,7 +19,9 @@ pub enum DocumentKind {
 }
 
 #[derive(Default)]
-pub struct Sidebar {}
+pub struct Sidebar {
+    items: Vec<SidebarItem>
+}
 
 #[derive(Debug, Clone)]
 pub enum SidebarMessage {
@@ -27,11 +29,21 @@ pub enum SidebarMessage {
 }
 
 impl Sidebar {
+
+    pub fn add_item(&mut self, item: SidebarItem) {
+        self.items.push(item);
+    }
+
     pub fn view(&self) -> Element<'_, SidebarMessage> {
 
+        let items = column(self.items.iter().map(SidebarItem::view));
+
         let sidebar = container(
-            iced::widget::column![
-                iced::widget::text("Information"),
+            widget::column![
+                iced::widget::text("Information")
+                    .width(Length::Fill)
+                    .center(),
+                items,
                 // TODO add sidebar item elements from `self`
                 container(Space::new(
                     Length::Fill,
@@ -49,5 +61,28 @@ impl Sidebar {
 
         sidebar
             .into()
+    }
+}
+
+pub enum SidebarItem {
+    Text(&'static str, String, String)
+}
+
+
+impl SidebarItem {
+    pub fn view(&self) -> Element<'_, SidebarMessage> {
+        match self {
+            SidebarItem::Text(_key, title, value) => {
+                row![
+                    iced::widget::text(title)
+                        .width(Length::FillPortion(1)),
+                    iced::widget::text(value)
+                        .width(Length::FillPortion(1)),
+
+                ]
+                    .width(Length::Fill)
+                    .into()
+            }
+        }
     }
 }

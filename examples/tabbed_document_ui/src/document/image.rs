@@ -3,7 +3,7 @@ use iced::{ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::{image, row, container};
 use iced::widget::image::viewer;
-use crate::document::Sidebar;
+use crate::document::{Sidebar, SidebarItem};
 
 pub struct ImageDocument {
     pub path: PathBuf,
@@ -17,16 +17,25 @@ pub enum ImageDocumentMessage {
     None
 }
 
+const SIDEBAR_ITEM_PATH: &str = "PATH";
+
 impl ImageDocument {
     pub fn new(path: PathBuf) -> Self {
         println!("creating image document. path: {:?}", path);
 
         let handle = image::Handle::from_path(&path);
 
+        let mut sidebar = Sidebar::default();
+        sidebar.add_item(SidebarItem::Text(
+            SIDEBAR_ITEM_PATH,
+            "Path".to_string(),
+            path.to_str().unwrap().to_string()
+        ));
+
         Self {
             path,
             handle,
-            sidebar: Sidebar::default()
+            sidebar
         }
     }
 
