@@ -16,8 +16,11 @@ Implementing this forces the developer to learn about some key points of the fra
 
 - Main window
     - [x] native look and feel titlebar with native close, minimize, maximize control
-    - [x] re-sizeable, contents adjust to fit.
+    - [x] re-sizable, contents adjust to fit.
 - Toolbar
+    - 'Home' button
+        - [ ] which when clicks shows a home tab.
+        - [ ] if the home tab is already open, it should switch to it.
 	- 'Open' button
 	    - [ ] When clicked, shows a native file selector dialog which allows the user to choose a file
         - [ ] When a file is opened, a tab appears and depending on the file type, it shows different content in the tab. (e.g. '.txt' text shows the 'Text' tab, '.bmp' shows the 'Image' tab).
