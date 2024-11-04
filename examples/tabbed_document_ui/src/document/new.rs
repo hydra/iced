@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use iced::Element;
-use iced::widget::{button, row, text_input, column};
+use iced::widget::{button, row, text_input, column, text_editor};
 
 pub struct NewDocument {
     state: Mutex<NewDocumentState>
@@ -17,6 +17,7 @@ impl Default for NewDocument {
 #[derive(Default)]
 pub struct NewDocumentState {
     name: String,
+    content: text_editor::Content
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,7 @@ impl NewDocument {
 
         let name_row = row![
             "Name",
+            text_editor(&self.state.lock().unwrap().content),
             text_input("Name", &self.state.lock().unwrap().name)
                 .on_input(NewDocumentMessage::NameChanged)
         ];

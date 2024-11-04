@@ -69,7 +69,8 @@ impl ImageDocument {
 
     pub fn view(&self) -> Element<'_, ImageDocumentMessage> {
 
-        let sidebar = self.state.lock().unwrap().sidebar.view()
+        let sidebar_guard = self.state.lock().unwrap();
+        let sidebar_element = sidebar_guard.sidebar.view()
             .map(|_message|ImageDocumentMessage::None);
 
         // FIXME the image should be:
@@ -94,7 +95,7 @@ impl ImageDocument {
             .align_y(Vertical::Top);
 
         let ui = row![
-            sidebar,
+            sidebar_element,
             image_container
         ];
 
