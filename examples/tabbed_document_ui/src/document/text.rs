@@ -57,6 +57,7 @@ impl TextDocument {
         let sidebar = self.state.sidebar.view()
             .map(|_message|TextDocumentMessage::None);
 
+        println!("view. content, selection: {:?}", self.state.content.selection());
         // FIXME every time the view is re-created, the state is is lost, e.g. when switching tabs.
         //       lost state includes:
         //       * caret position
@@ -77,6 +78,7 @@ impl TextDocument {
         match message {
             TextDocumentMessage::Edit(action) => {
                 self.state.content.perform(action);
+                println!("update. content, selection: {:?}", self.state.content.selection());
                 TextDocumentAction::None
             }
             TextDocumentMessage::None => unreachable!()

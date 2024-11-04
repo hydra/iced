@@ -128,6 +128,7 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
                 ,
                 |tab_bar, (key, tab)| {
 
+                    // FIXME actions in ANY tabs, e.g. text selection in a texttab, cause ALL tab views to be re-created!
                     let tab_view = tab.view(key);
 
                     let view = tab_view
