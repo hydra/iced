@@ -84,9 +84,7 @@ struct TabbedDocumentUI {
     toolbar: app_toolbar::Toolbar,
     config: Arc<Mutex<Config>>,
 
-    // FIXME what we really want here is a slotmap of Documents, not PathBuf, but due to lifetimes required for the views, we cannot!
-    //       the APP should own the documents, not the tabs, the tabs should refer to the documents.
-    documents: SlotMap<DocumentKey, PathBuf>,
+    documents: SlotMap<DocumentKey, DocumentKind>,
     status_bar: StatusBar
 }
 
@@ -145,7 +143,17 @@ impl TabbedDocumentUI {
     }
 
     fn on_tab_message(&mut self, message: TabMessage<TabKindMessage>) -> Task<Message> {
-        let action = self.tabs.update(message);
+        let action = self.tabs.update(message, |tab, message|{
+            match (tab, message) {
+                (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => {
+                    TabKindAction::HomeTabAction(tab.update(message))
+                }
+                (TabKind::Document(tab), TabKindMessage::DocumentTabMessage(message)) => {
+                    TabKindAction::DocumentTabAction(tab.update(message, &mut self.documents))
+                }
+                _ => unreachable!()
+            }
+        });
 
         match action {
             TabAction::TabSelected(key) => self.on_tab_selected(key),
@@ -268,7 +276,28 @@ impl TabbedDocumentUI {
             .into();
 
 
-        let tab_bar = self.tabs.view();
+        let tab_bar = self.tabs.view(|_key, tab|{
+            match tab {
+                TabKind::Home(tab) => tab
+                    .view()
+                    .map(|message|{
+                        TabKindMessage::HomeTabMessage(message)
+                    })
+                    .into(),
+                TabKind::Document(tab) => tab
+                    .view(&self.documents)
+                    .map(|message|{
+                        TabKindMessage::DocumentTabMessage(message)
+                    })
+                    .into()
+            }
+        }, |_key, tab|{
+            match tab {
+                TabKind::Home(tab) => tab.label(),
+                TabKind::Document(tab) => tab.label(&self.documents),
+            }
+
+        });
 
         let mapped_tab_bar: Element<'_, Message> = tab_bar
             .map(|tab_message|{
@@ -332,9 +361,9 @@ impl TabbedDocumentUI {
         };
 
 
-        let document_key = self.documents.insert(path.clone());
+        let document_key = self.documents.insert(document);
 
-        let document_tab = DocumentTab::new(document_key, document);
+        let document_tab = DocumentTab::new(document_key);
         let key = self.tabs.push(TabKind::Document(document_tab));
         self.tabs.activate(key);
 
@@ -344,11 +373,14 @@ impl TabbedDocumentUI {
     /// Update the config with the currently open documents
     fn update_open_documents(&mut self) {
         let open_documents: Vec<PathBuf> = self.documents.iter()
-            .map(|(_key, path)| {
-                path.clone()
+            .map(|(_key, document)| {
+                match document {
+                    DocumentKind::TextDocument(document) => document.path.clone(),
+                    DocumentKind::ImageDocument(document) => document.path.clone(),
+                }
             })
             .collect();
-        println!("open_documents: {:?}", self.documents);
+        println!("open_documents: {:?}", open_documents);
 
         self.config.lock().unwrap().open_document_paths = open_documents;
     }

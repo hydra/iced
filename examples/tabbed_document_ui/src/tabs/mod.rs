@@ -23,32 +23,14 @@ pub enum TabAction<TKA, TK> {
     TabAction(TKA),
 }
 
-/// Individual re-usable tabs should implement this
-pub trait Tab {
-    type Message;
-    type Action;
-
-    fn view(&self) -> Element<'_, Self::Message>;
-    fn label(&self) -> String;
-
-    fn update(&mut self, message: Self::Message) -> Self::Action;
-}
-
-/// The application, which uses re-usable tabs, should implement this
-pub trait AppTabs<TKM, TKA> {
-    fn view(&self, key: TabKey) -> Element<'_, TKM>;
-    fn label(&self, key: TabKey) -> String;
-    fn update(&mut self, message: TKM) -> TKA;
-}
-
-pub struct Tabs<TK: AppTabs<TKM, TKA>, TKM, TKA> {
+pub struct Tabs<TK, TKM, TKA> {
     tabs: SlotMap<TabKey, TK>,
     selected: Option<TabKey>,
     _phantom1: PhantomData<TKM>,
     _phantom2: PhantomData<TKA>,
 }
 
-impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
+impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     pub fn push(&mut self, tab_kind: TK) -> TabKey {
         self.tabs.insert(tab_kind)
     }
@@ -72,7 +54,7 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
     }
 }
 
-impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
+impl<TK, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     fn default() -> Self {
         Self {
             tabs: SlotMap::default(),
@@ -83,14 +65,19 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     }
 }
 
-impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
-    pub fn update(
-        &mut self, message: TabMessage<TKM>
-    ) -> TabAction<TKA, TK> {
+impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
+    pub fn update<UF>(
+        &mut self,
+        message: TabMessage<TKM>,
+        mut update_fn: UF
+    ) -> TabAction<TKA, TK>
+    where
+        UF: FnMut(&mut TK, TKM) -> TKA
+    {
         match message {
             TabMessage::TabKindMessage(key, message) => {
                 let tab = self.tabs.get_mut(key).unwrap();
-                let action = tab.update(message);
+                let action = update_fn(tab, message);
 
                 TabAction::TabAction(action)
             },
@@ -111,9 +98,15 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
         }
     }
 
-    pub fn view<'tk>(
-        &'tk self
-    ) -> Element<'tk, TabMessage<TKM>> {
+    pub fn view<'tk, VF, LF>(
+        &'tk self,
+        view_fn: VF,
+        label_fn: LF,
+    ) -> Element<'tk, TabMessage<TKM>>
+    where
+        VF: Fn(TabKey, &'tk TK) -> Element<'tk, TKM>,
+        LF: Fn(TabKey, &'tk TK) -> String,
+    {
         let tab_bar = self.tabs
             .iter()
             .fold(
@@ -129,14 +122,14 @@ impl<TK: AppTabs<TKM, TKA>, TKM, TKA> Tabs<TK, TKM, TKA> {
                 |tab_bar, (key, tab)| {
 
                     // FIXME actions in ANY tabs, e.g. text selection in a texttab, cause ALL tab views to be re-created!
-                    let tab_view = tab.view(key);
+                    let tab_view = view_fn(key, tab);
 
                     let view = tab_view
                         .map(move |message|{
                             TabMessage::TabKindMessage(key, message)
                         });
 
-                    let label = tab.label(key);
+                    let label = label_fn(key, tab);
 
                     let tab_bar = tab_bar.push(key, TabLabel::Text(label), view);
 

@@ -1,19 +1,17 @@
+use slotmap::SlotMap;
 use iced::Element;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocumentMessage;
 use crate::document::text::TextDocumentMessage;
-use crate::tabs::Tab;
 
 pub struct DocumentTab {
     key: DocumentKey,
-    document_kind: DocumentKind,
 }
 
 impl DocumentTab {
-    pub fn new(key: DocumentKey, document_kind: DocumentKind) -> Self {
+    pub fn new(key: DocumentKey) -> Self {
         Self {
-            key,
-            document_kind,
+            key
         }
     }
 
@@ -34,13 +32,12 @@ pub enum DocumentTabAction {
     None
 }
 
-impl Tab for DocumentTab {
-    type Message = DocumentTabMessage;
-    type Action = DocumentTabAction;
+impl DocumentTab {
+    pub fn view<'tab, 'document>(&'tab self, documents: &'document SlotMap<DocumentKey, DocumentKind>) -> Element<'document, DocumentTabMessage> {
 
-    fn view(&self) -> Element<'_, Self::Message> {
+        let document = documents.get(self.key).unwrap();
 
-        let view = match &self.document_kind {
+        let view = match document {
             DocumentKind::TextDocument(text_document) => text_document
                 .view()
                 .map(DocumentTabMessage::TextDocumentMessage),
@@ -53,15 +50,19 @@ impl Tab for DocumentTab {
             .into()
     }
 
-    fn label(&self) -> String {
-        match self.document_kind {
+    pub fn label(&self, documents: &SlotMap<DocumentKey, DocumentKind>) -> String {
+        let document = documents.get(self.key).unwrap();
+
+        match document {
             DocumentKind::TextDocument(ref document) => document.path.to_str().unwrap().to_string(),
             DocumentKind::ImageDocument(ref document) => document.path.to_str().unwrap().to_string(),
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Self::Action {
-        match (&mut self.document_kind, message) {
+    pub fn update(&mut self, message: DocumentTabMessage, documents: &mut SlotMap<DocumentKey, DocumentKind>) -> DocumentTabAction {
+        let document = documents.get_mut(self.key).unwrap();
+
+        match (document, message) {
             (DocumentKind::TextDocument(document), DocumentTabMessage::TextDocumentMessage(message)) => {
                 let _action = document.update(message);
                 DocumentTabAction::None

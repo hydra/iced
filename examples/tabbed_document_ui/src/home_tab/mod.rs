@@ -5,7 +5,6 @@ use iced::{padding, Element, Length};
 use iced::alignment::{Horizontal};
 use iced::widget::{text, column, checkbox, container, row, horizontal_space};
 use crate::config::Config;
-use crate::tabs::Tab;
 
 pub struct HomeTab {
     config: Arc<Mutex<Config>>
@@ -29,12 +28,8 @@ pub enum HomeTabAction {
     ShowOnStartupChanged
 }
 
-impl Tab for HomeTab {
-
-    type Message = HomeTabMessage;
-    type Action = HomeTabAction;
-
-    fn view(&self) -> Element<'static, HomeTabMessage> {
+impl HomeTab {
+    pub fn view(&self) -> Element<'static, HomeTabMessage> {
         // NOTE: this don't work, likely the font doesn't contain the glyph for 'House'.
         // let text = text("🏠")
         //     .font(NERD_FONT);
@@ -55,7 +50,7 @@ impl Tab for HomeTab {
                 .lock()
                 .unwrap()
                 .show_home_on_startup
-            )
+        )
             .on_toggle(|value|{
                 HomeTabMessage::ShowOnStartupChanged(value)
             });
@@ -73,11 +68,11 @@ impl Tab for HomeTab {
             .into()
     }
 
-    fn label(&self) -> String {
+    pub fn label(&self) -> String {
         "Home".to_string()
     }
 
-    fn update(&mut self, message: HomeTabMessage) -> HomeTabAction {
+    pub fn update(&mut self, message: HomeTabMessage) -> HomeTabAction {
         println!("message: {:?}", message);
 
         match message {
