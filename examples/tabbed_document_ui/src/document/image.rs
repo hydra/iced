@@ -17,7 +17,7 @@ pub struct ImageDocument {
     pub path: PathBuf,
     handle: image::Handle,
 
-    state: Mutex<ImageDocumentState>,
+    state: ImageDocumentState,
 }
 
 #[derive(Default)]
@@ -61,14 +61,13 @@ impl ImageDocument {
         Self {
             path,
             handle,
-            state: Mutex::new(Default::default()),
+            state: Default::default(),
         }
     }
 
     pub fn view(&self) -> Element<'_, ImageDocumentMessage> {
 
-        let sidebar_guard = self.state.lock().unwrap();
-        let sidebar_element = sidebar_guard.sidebar.view()
+        let sidebar_element = self.state.sidebar.view()
             .map(|_message|ImageDocumentMessage::None);
 
         // FIXME the image should be:
@@ -101,16 +100,14 @@ impl ImageDocument {
             .into()
     }
 
-    pub fn update(&self, message: ImageDocumentMessage) -> ImageDocumentAction {
+    pub fn update(&mut self, message: ImageDocumentMessage) -> ImageDocumentAction {
         match message {
             ImageDocumentMessage::None => (),
             ImageDocumentMessage::ImageClicked(coordinate) => {
 
-                let mut state = self.state.lock().unwrap();
+                self.state.last_clicked = Some(coordinate);
 
-                state.last_clicked = Some(coordinate);
-
-                state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
+                self.state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
                     let SidebarItem::Text(_key, _label, value) = item;
                     *value = "foo".to_string();
                 });

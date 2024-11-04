@@ -83,7 +83,10 @@ struct TabbedDocumentUI {
     tabs: tabs::Tabs<TabKind, TabKindMessage, TabKindAction>,
     toolbar: app_toolbar::Toolbar,
     config: Arc<Mutex<Config>>,
-    documents: SlotMap<DocumentKey, Arc<DocumentKind>>,
+
+    // FIXME what we really want here is a slotmap of Documents, not PathBuf, but due to lifetimes required for the views, we cannot!
+    //       the APP should own the documents, not the tabs, the tabs should refer to the documents.
+    documents: SlotMap<DocumentKey, PathBuf>,
     status_bar: StatusBar
 }
 
@@ -328,11 +331,10 @@ impl TabbedDocumentUI {
             return Err(OpenDocumentError::UnsupportedFileExtension { extension: extension.to_string() });
         };
 
-        let document_arc = Arc::new(document);
 
-        let document_key = self.documents.insert(document_arc.clone());
+        let document_key = self.documents.insert(path.clone());
 
-        let document_tab = DocumentTab::new(document_key, document_arc);
+        let document_tab = DocumentTab::new(document_key, document);
         let key = self.tabs.push(TabKind::Document(document_tab));
         self.tabs.activate(key);
 
@@ -342,14 +344,11 @@ impl TabbedDocumentUI {
     /// Update the config with the currently open documents
     fn update_open_documents(&mut self) {
         let open_documents: Vec<PathBuf> = self.documents.iter()
-            .map(|(_key, document)| {
-                match &**document {
-                    DocumentKind::TextDocument(document) => document.path.clone(),
-                    DocumentKind::ImageDocument(document) => document.path.clone(),
-                }
+            .map(|(_key, path)| {
+                path.clone()
             })
             .collect();
-        println!("open_documents: {:?}", open_documents);
+        println!("open_documents: {:?}", self.documents);
 
         self.config.lock().unwrap().open_document_paths = open_documents;
     }

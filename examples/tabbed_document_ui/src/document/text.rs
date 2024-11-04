@@ -8,14 +8,13 @@ use crate::document::{Sidebar, SidebarItem};
 pub struct TextDocument {
     pub path: PathBuf,
 
-    state: Mutex<TextDocumentState>,
-
-    sidebar: Sidebar,
+    state: TextDocumentState,
 }
 
 #[derive(Default)]
 pub struct TextDocumentState {
-    content: text_editor::Content
+    content: text_editor::Content,
+    sidebar: Sidebar,
 }
 
 #[derive(Debug, Clone)]
@@ -39,25 +38,24 @@ impl TextDocument {
 
         let text = fs::read_to_string(&path).unwrap();
         let content = text_editor::Content::with_text(&text);
-        let state = Mutex::new(TextDocumentState {
+        let state = TextDocumentState {
             content,
-        });
+            sidebar,
+        };
 
         Self {
             path,
             state,
-            sidebar,
         }
     }
 
     pub fn view(&self) -> Element<'_, TextDocumentMessage> {
 
-        let sidebar = self.sidebar.view()
+        let sidebar = self.state.sidebar.view()
             .map(|_message|TextDocumentMessage::None);
 
-        let state_guard = self.state.lock().unwrap();
 
-        let text_editor = text_editor(&state_guard.content);
+        let text_editor = text_editor(&self.state.content);
 
         let ui = row![
             sidebar,

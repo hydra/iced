@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use iced::Element;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocumentMessage;
@@ -7,11 +6,11 @@ use crate::tabs::Tab;
 
 pub struct DocumentTab {
     key: DocumentKey,
-    document_kind: Arc<DocumentKind>,
+    document_kind: DocumentKind,
 }
 
 impl DocumentTab {
-    pub fn new(key: DocumentKey, document_kind: Arc<DocumentKind>) -> Self {
+    pub fn new(key: DocumentKey, document_kind: DocumentKind) -> Self {
         Self {
             key,
             document_kind,
@@ -41,7 +40,7 @@ impl Tab for DocumentTab {
 
     fn view(&self) -> Element<'_, Self::Message> {
 
-        let view = match &*self.document_kind {
+        let view = match &self.document_kind {
             DocumentKind::TextDocument(text_document) => text_document
                 .view()
                 .map(DocumentTabMessage::TextDocumentMessage),
@@ -55,14 +54,14 @@ impl Tab for DocumentTab {
     }
 
     fn label(&self) -> String {
-        match *self.document_kind {
+        match self.document_kind {
             DocumentKind::TextDocument(ref document) => document.path.to_str().unwrap().to_string(),
             DocumentKind::ImageDocument(ref document) => document.path.to_str().unwrap().to_string(),
         }
     }
 
     fn update(&mut self, message: Self::Message) -> Self::Action {
-        match (&*self.document_kind, message) {
+        match (&mut self.document_kind, message) {
             (DocumentKind::TextDocument(_document), DocumentTabMessage::TextDocumentMessage(_message)) => DocumentTabAction::None,
             (DocumentKind::ImageDocument(document), DocumentTabMessage::ImageDocumentMessage(message)) => {
                 let _action = document.update(message);
