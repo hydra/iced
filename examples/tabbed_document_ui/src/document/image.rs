@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use iced::{ContentFit, Element, Length};
-use iced::advanced::graphics::image::image_rs::{image_dimensions, ImageResult};
+use iced::advanced::graphics::image::image_rs::image_dimensions;
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::{image, row, container, button};
 use iced::widget::image::viewer;
@@ -128,13 +128,12 @@ impl ImageDocument {
         match message {
             ImageDocumentMessage::None => (),
             ImageDocumentMessage::ImageClicked(coordinate) => {
-                self.state.last_clicked = Some(coordinate);
-
                 self.state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
                     let SidebarItem::Text(_label, value) = item;
-                    *value = format!("{:?}", self.state.last_clicked).to_string();
+                    *value = format!("x: {}, y: {}", coordinate.x, coordinate.y).to_string();
                 });
 
+                self.state.last_clicked = Some(coordinate);
             }
         }
         ImageDocumentAction::None
