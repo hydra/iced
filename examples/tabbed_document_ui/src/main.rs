@@ -21,7 +21,6 @@ use crate::config::Config;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
-use crate::document::new::NewDocument;
 use crate::document_tab::DocumentTab;
 use crate::home_tab::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
@@ -205,17 +204,7 @@ impl TabbedDocumentUI {
 
     fn on_toolbar_new_document(&mut self) -> Task<Message> {
 
-        let document = DocumentKind::NewDocument(NewDocument::default());
-
-        let document_arc = Arc::new(document);
-
-        let document_key = self.documents.insert(document_arc.clone());
-
-        let document_tab = DocumentTab::new(document_key, document_arc);
-        let key = self.tabs.push(TabKind::Document(document_tab));
-        self.tabs.activate(key);
-
-        Task::none()
+        todo!()
     }
 
     fn on_tab_selected(&mut self, key: TabKey) -> Task<Message> {
@@ -353,18 +342,10 @@ impl TabbedDocumentUI {
     /// Update the config with the currently open documents
     fn update_open_documents(&mut self) {
         let open_documents: Vec<PathBuf> = self.documents.iter()
-            .filter(|(_key, document)|{
-                // FIXME avoid this triple de-ref madness
-                match &***document {
-                    DocumentKind::NewDocument(_) => false,
-                    _ => true
-                }
-            })
             .map(|(_key, document)| {
                 match &**document {
                     DocumentKind::TextDocument(document) => document.path.clone(),
                     DocumentKind::ImageDocument(document) => document.path.clone(),
-                    DocumentKind::NewDocument(_) => unreachable!()
                 }
             })
             .collect();
