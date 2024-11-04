@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use iced::{ContentFit, Element, Length};
+use iced::advanced::graphics::image::image_rs::{image_dimensions, ImageResult};
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::{image, row, container, button};
 use iced::widget::image::viewer;
@@ -36,6 +37,7 @@ pub enum ImageDocumentAction {
 }
 
 const SIDEBAR_ITEM_PATH: &str = "PATH";
+const SIDEBAR_ITEM_SIZE: &str = "SIZE";
 const SIDEBAR_ITEM_LAST_CLICKED_COORDINATE: &str = "LAST_CLICKED_COORDINATE";
 
 impl ImageDocument {
@@ -51,10 +53,22 @@ impl ImageDocument {
             path.to_str().unwrap().to_string()
         ));
 
+        let dimensions = image_dimensions(&path);
+        let dimensions_message = match dimensions {
+            Ok((x,y)) => format!("x: {}, y: {}", x, y),
+            Err(_) => "Error".to_string()
+        };
+
+        sidebar.add_item(SIDEBAR_ITEM_SIZE, SidebarItem::Text(
+            "Size (X/Y)".to_string(),
+            dimensions_message
+        ));
+
         sidebar.add_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE, SidebarItem::Text(
             "Last clicked coordinate".to_string(),
             "None".to_string()
         ));
+
         Self {
             path,
             handle,

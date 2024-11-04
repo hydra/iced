@@ -69,17 +69,17 @@ Implementing this forces the developer to learn about some key points of the fra
 				- [ ] Selection information
 		- 'Image' tab.
 			- [x] Filename must appear in tab.
-			- [ ] Shows the image.
+			- [x] Shows the image.
             - [ ] Image is top-left justified.
-            - [ ] Image is scaled-up to fit window, aspect ratio must be preserved.
+            - [x] Image is scaled-up to fit window, aspect ratio must be preserved.
             - [ ] Do not allow image to be scaled down.
 			- [ ] If too big to fit in the window, scrollbars must be present to allow panning
 			- [ ] Maintain X/Y coordinates of last click of anywhere on the image.
 			- [ ] Content must be loaded in a thread or async, in the background.
 			- Info sidebar with a grid of key/value items
 				- [x] File path
-				- [ ] Last-clicked X/Y coordinate information
-                - [ ] Image size. (width, height).
+				- [x] Last-clicked X/Y coordinate information
+                - [x] Image size. (width, height).
 - Application state must be loaded on program start, and saved as appropriate.
 	- State items
 		- [x] 'Open home tab on startup', boolean, initially true.
