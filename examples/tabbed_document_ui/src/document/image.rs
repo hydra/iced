@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use iced::{ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
-use iced::application::Update;
 use iced::widget::{image, row, container};
 use iced::widget::image::viewer;
 use crate::document::{Sidebar, SidebarItem};
@@ -113,9 +112,8 @@ impl ImageDocument {
                 state.last_clicked = Some(coordinate);
 
                 state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
-                    if let SidebarItem::Text(key, label, value) = item {
-                        *value = "foo".to_string();
-                    };
+                    let SidebarItem::Text(_key, _label, value) = item;
+                    *value = "foo".to_string();
                 });
             }
         }

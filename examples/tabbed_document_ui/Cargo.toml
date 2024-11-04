@@ -24,4 +24,4 @@ rfd = { version = "0.15.0" }
 thiserror = "1.0.65"
 
 [lints]
-workspace = true
+#workspace = true

@@ -1,5 +1,4 @@
-use std::cell::RefCell;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use iced::Element;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocumentMessage;
@@ -66,13 +65,13 @@ impl Tab for DocumentTab {
         match *self.document_kind {
             DocumentKind::TextDocument(ref document) => document.path.to_str().unwrap().to_string(),
             DocumentKind::ImageDocument(ref document) => document.path.to_str().unwrap().to_string(),
-            DocumentKind::NewDocument(ref document) => "New".to_string()
+            DocumentKind::NewDocument(ref _document) => "New".to_string()
         }
     }
 
     fn update(&mut self, message: Self::Message) -> Self::Action {
         match (&*self.document_kind, message) {
-            (DocumentKind::TextDocument(document), DocumentTabMessage::TextDocumentMessage(_message)) => DocumentTabAction::None,
+            (DocumentKind::TextDocument(_document), DocumentTabMessage::TextDocumentMessage(_message)) => DocumentTabAction::None,
             (DocumentKind::ImageDocument(document), DocumentTabMessage::ImageDocumentMessage(message)) => {
                 let _action = document.update(message);
                 DocumentTabAction::None

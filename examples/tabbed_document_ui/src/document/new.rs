@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use iced::Element;
-use iced::widget::{button, horizontal_space, row, text_input, column};
+use iced::widget::{button, row, text_input, column};
 
 pub struct NewDocument {
     state: Mutex<NewDocumentState>

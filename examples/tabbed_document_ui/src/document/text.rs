@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use iced::Element;
 use iced::widget::{row, text};
 use crate::document::{Sidebar, SidebarItem};
-use crate::document::image::ImageDocumentMessage;
 
 pub struct TextDocument {
     pub path: PathBuf,
