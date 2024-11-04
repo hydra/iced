@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use iced::Element;
 use iced::widget::{row, text_editor};
 use crate::document::{Sidebar, SidebarItem};
@@ -30,8 +29,7 @@ impl TextDocument {
 
 
         let mut sidebar = Sidebar::default();
-        sidebar.add_item(SidebarItem::Text(
-            SIDEBAR_ITEM_PATH,
+        sidebar.add_item(SIDEBAR_ITEM_PATH, SidebarItem::Text(
             "Path".to_string(),
             path.to_str().unwrap().to_string()
         ));

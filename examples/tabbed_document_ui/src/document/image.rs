@@ -1,8 +1,7 @@
 use std::path::PathBuf;
-use std::sync::Mutex;
 use iced::{ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
-use iced::widget::{image, row, container};
+use iced::widget::{image, row, container, button};
 use iced::widget::image::viewer;
 use crate::document::{Sidebar, SidebarItem};
 
@@ -47,21 +46,22 @@ impl ImageDocument {
 
         let mut sidebar = Sidebar::default();
 
-        sidebar.add_item(SidebarItem::Text(
-            SIDEBAR_ITEM_PATH,
+        sidebar.add_item(SIDEBAR_ITEM_PATH, SidebarItem::Text(
             "Path".to_string(),
             path.to_str().unwrap().to_string()
         ));
 
-        sidebar.add_item(SidebarItem::Text(
-            SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,
+        sidebar.add_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE, SidebarItem::Text(
             "Last clicked coordinate".to_string(),
             "None".to_string()
         ));
         Self {
             path,
             handle,
-            state: Default::default(),
+            state: ImageDocumentState {
+                last_clicked: Default::default(),
+                sidebar,
+            },
         }
     }
 
@@ -91,9 +91,19 @@ impl ImageDocument {
             .align_x(Horizontal::Left)
             .align_y(Vertical::Top);
 
+        // TODO work out how to have the image viewer generate 'ImageDocumentMessage::ImageClicked' events when clicked.
+        //      for now, we have a button to test the event handling and sidebar update.
+        let temporary_button = button("generate click event")
+            .on_press_with(||{
+                ImageDocumentMessage::ImageClicked(Coordinate { x: 10, y: 10 })
+            });
+
         let ui = row![
             sidebar_element,
-            image_container
+            image_container,
+
+            // DELETE THIS
+            temporary_button,
         ];
 
         ui
@@ -104,13 +114,13 @@ impl ImageDocument {
         match message {
             ImageDocumentMessage::None => (),
             ImageDocumentMessage::ImageClicked(coordinate) => {
-
                 self.state.last_clicked = Some(coordinate);
 
                 self.state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
-                    let SidebarItem::Text(_key, _label, value) = item;
-                    *value = "foo".to_string();
+                    let SidebarItem::Text(_label, value) = item;
+                    *value = format!("{:?}", self.state.last_clicked).to_string();
                 });
+
             }
         }
         ImageDocumentAction::None

@@ -19,7 +19,7 @@ pub enum DocumentKind {
 
 #[derive(Default)]
 pub struct Sidebar {
-    items: Vec<SidebarItem>
+    items: Vec<(&'static str, SidebarItem)>
 }
 
 #[derive(Debug, Clone)]
@@ -29,22 +29,30 @@ pub enum SidebarMessage {
 
 impl Sidebar {
 
-    pub fn add_item(&mut self, item: SidebarItem) {
-        self.items.push(item);
+    pub fn add_item(&mut self, key: &'static str, item: SidebarItem) {
+        self.items.push((key, item));
     }
 
     pub fn update_item<F>(&mut self, key: &str, mut update_fn: F)
     where
         F: FnMut(&mut SidebarItem) -> ()
     {
-        // TODO do this properly...
-        let item = self.items.get_mut(0).unwrap();
-        update_fn(item);
+        if let Some(item) = self.items.iter_mut()
+            .find_map(|(ref candidate_key, item)|{
+                //println!("candidate_key: {}", candidate_key);
+                if (*candidate_key).eq(key) {
+                    Some(item)
+                } else {
+                    None
+                }
+            }) {
+            update_fn(item)
+        }
     }
 
     pub fn view(&self) -> Element<'_, SidebarMessage> {
 
-        let items = column(self.items.iter().map(SidebarItem::view));
+        let items = column(self.items.iter().map(|(_key, item)|SidebarItem::view(item)));
 
         let sidebar = container(
             widget::column![
@@ -73,14 +81,14 @@ impl Sidebar {
 }
 
 pub enum SidebarItem {
-    Text(&'static str, String, String)
+    Text(String, String)
 }
 
 
 impl SidebarItem {
     pub fn view(&self) -> Element<'_, SidebarMessage> {
         match self {
-            SidebarItem::Text(_key, title, value) => {
+            SidebarItem::Text(title, value) => {
                 row![
                     iced::widget::text(title)
                         .width(Length::FillPortion(1)),
