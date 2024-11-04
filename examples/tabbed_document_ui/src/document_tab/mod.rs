@@ -62,7 +62,10 @@ impl Tab for DocumentTab {
 
     fn update(&mut self, message: Self::Message) -> Self::Action {
         match (&mut self.document_kind, message) {
-            (DocumentKind::TextDocument(_document), DocumentTabMessage::TextDocumentMessage(_message)) => DocumentTabAction::None,
+            (DocumentKind::TextDocument(document), DocumentTabMessage::TextDocumentMessage(message)) => {
+                let _action = document.update(message);
+                DocumentTabAction::None
+            },
             (DocumentKind::ImageDocument(document), DocumentTabMessage::ImageDocumentMessage(message)) => {
                 let _action = document.update(message);
                 DocumentTabAction::None

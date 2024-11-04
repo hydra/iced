@@ -18,7 +18,13 @@ pub struct TextDocumentState {
 
 #[derive(Debug, Clone)]
 pub enum TextDocumentMessage {
-    None
+    None,
+    Edit(text_editor::Action),
+}
+
+#[derive(Debug)]
+pub enum TextDocumentAction {
+    None,
 }
 
 const SIDEBAR_ITEM_PATH: &str = "PATH";
@@ -26,7 +32,6 @@ const SIDEBAR_ITEM_PATH: &str = "PATH";
 impl TextDocument {
     pub fn new(path: PathBuf) -> Self {
         println!("creating text document. path: {:?}", path);
-
 
         let mut sidebar = Sidebar::default();
         sidebar.add_item(SIDEBAR_ITEM_PATH, SidebarItem::Text(
@@ -52,8 +57,12 @@ impl TextDocument {
         let sidebar = self.state.sidebar.view()
             .map(|_message|TextDocumentMessage::None);
 
-
-        let text_editor = text_editor(&self.state.content);
+        // FIXME every time the view is re-created, the state is is lost, e.g. when switching tabs.
+        //       lost state includes:
+        //       * caret position
+        //       * text selection
+        let text_editor = text_editor(&self.state.content)
+            .on_action(TextDocumentMessage::Edit);
 
         let ui = row![
             sidebar,
@@ -62,7 +71,16 @@ impl TextDocument {
 
         ui
             .into()
+    }
 
+    pub fn update(&mut self, message: TextDocumentMessage) -> TextDocumentAction {
+        match message {
+            TextDocumentMessage::Edit(action) => {
+                self.state.content.perform(action);
+                TextDocumentAction::None
+            }
+            TextDocumentMessage::None => unreachable!()
+        }
     }
 }
 
