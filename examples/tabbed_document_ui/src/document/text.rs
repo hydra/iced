@@ -1,14 +1,21 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use iced::Element;
-use iced::widget::{row, text};
+use iced::widget::{row, text_editor};
 use crate::document::{Sidebar, SidebarItem};
 
 pub struct TextDocument {
     pub path: PathBuf,
-    content: String,
+
+    state: Mutex<TextDocumentState>,
 
     sidebar: Sidebar,
+}
+
+#[derive(Default)]
+pub struct TextDocumentState {
+    content: text_editor::Content
 }
 
 #[derive(Debug, Clone)]
@@ -30,11 +37,15 @@ impl TextDocument {
             path.to_str().unwrap().to_string()
         ));
 
-        let content = fs::read_to_string(&path).unwrap();
+        let text = fs::read_to_string(&path).unwrap();
+        let content = text_editor::Content::with_text(&text);
+        let state = Mutex::new(TextDocumentState {
+            content,
+        });
 
         Self {
             path,
-            content,
+            state,
             sidebar,
         }
     }
@@ -44,11 +55,13 @@ impl TextDocument {
         let sidebar = self.sidebar.view()
             .map(|_message|TextDocumentMessage::None);
 
-        let text_content = text(&self.content);
+        let state_guard = self.state.lock().unwrap();
+
+        let text_editor = text_editor(&state_guard.content);
 
         let ui = row![
             sidebar,
-            text_content
+            text_editor,
         ];
 
         ui
