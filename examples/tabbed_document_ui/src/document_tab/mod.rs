@@ -54,8 +54,8 @@ impl DocumentTab {
         let document = documents.get(self.key).unwrap();
 
         match document {
-            DocumentKind::TextDocument(ref document) => document.path.to_str().unwrap().to_string(),
-            DocumentKind::ImageDocument(ref document) => document.path.to_str().unwrap().to_string(),
+            DocumentKind::TextDocument(ref document) => document.path.file_name().unwrap().to_str().unwrap().to_string(),
+            DocumentKind::ImageDocument(ref document) => document.path.file_name().unwrap().to_str().unwrap().to_string(),
         }
     }
 
