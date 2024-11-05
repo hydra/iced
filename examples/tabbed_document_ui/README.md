@@ -30,11 +30,11 @@ Implementing this forces the developer to learn about some key points of the fra
 	- [ ] Language dropdown, choose between at least 2 languages (e.g. English and Spanish).
         - [ ] Changing the language should cause all UI text to be immediately displayed in the selected language without requiring a restart. 
 - Tab bar
-	- [ ] When all the tabs won't fit in the title, there must be some controls to allow them all to be selected, e.g. `<` and `>` buttons, or `V` dropdown.
+	- [x] When all the tabs won't fit in the window, there must be some controls to allow them all to be selected, e.g. `<` and `>` buttons, or `V` dropdown, or scrollable.
 	- [x] Selecting a tab changes the content area below the tab bar.
 	- [ ] Must be obvious which tab is selected when there are only two tabs.
-	- [ ] Each tab should be closable (e.g. an `X` button on the tab or right-click on tab to show a context menu with `Close`)
-	- [ ] When a tab is closed, the next most recently used tab is made active.
+	- [x] Each tab should be closable (e.g. an `X` button on the tab or right-click on tab to show a context menu with `Close`)
+	- [x] When a tab is closed, the next most recently used tab is made active.
 - Tab content
 	- [x] Displays the content for the tab.
 	- [x] Each tab content must maintain it's state, without expensive re-loads/refreshing of the state, no re-loading of files.
@@ -50,32 +50,35 @@ Implementing this forces the developer to learn about some key points of the fra
 					- dropdown should always appear, correctly and allow all elements to be chosen even if the window is resized.
 				- Directory - non-editable path with a button to show a native directory selector to be used, that when selected shows the path.
 			- [ ] Title of the new tab is 'New'
-			- [ ] Multiple 'new' tabs are allowed.
-			- [ ] State of each 'new' tab must be maintained when switching to a different 'new' tab.
+			- [ ] Multiple 'new' tabs are allowed, each with their own state.
+            - Tab state
+			    - [ ] The form field values.
 			- When OK is pressed
 				- [ ] the tab name should be updated to the name of the file.
 				- [ ] a file should be created with the appropriate extension.
 				- [ ] it's content should be displayed in the same tab, see tab content below.
 				- [ ] there should be no visible removal and insertion of any new tab.
 				- [ ] tab ordering must be preserved.  e.g. given tabs 'File1, New, File2' pressing 'Ok' on `New` should result in tabs 'File1, File3, File2', not 'File1, File2, File3'
-		- 'Text' tab
+		- 'Text' tab, displays a 'text' document.
 			- [x] Filename must appear in tab.
-			- [ ] Show text file content in an editor.
-			- [ ] Maintain text selection.
-			- [ ] Maintain caret position.
+			- [x] Show text file content in an editor.
 			- [ ] Content must be loaded in a thread or async, in the background.
+			- Tab State
+				- [ ] Maintain text selection.
+				- [ ] Maintain caret position.
 			- Info sidebar with a grid of key/value items
 				- [x] File path
 				- [ ] Selection information
-		- 'Image' tab.
+		- 'Image' tab, displays an 'image' document.
 			- [x] Filename must appear in tab.
 			- [x] Shows the image.
             - [ ] Image is top-left justified.
             - [x] Image is scaled-up to fit window, aspect ratio must be preserved.
             - [ ] Do not allow image to be scaled down.
 			- [ ] If too big to fit in the window, scrollbars must be present to allow panning
-			- [ ] Maintain X/Y coordinates of last click of anywhere on the image.
 			- [ ] Content must be loaded in a thread or async, in the background.
+			- Tab State
+				- [ ] Maintain X/Y coordinates of last click of anywhere on the image.
 			- Info sidebar with a grid of key/value items
 				- [x] File path
 				- [x] Last-clicked X/Y coordinate information
@@ -86,9 +89,17 @@ Implementing this forces the developer to learn about some key points of the fra
 			- [x] If true, open the 'Home' tab on startup.
 		- [x] 'List of currently open files' (ignore `New` tabs), list of absolute filenames, initially empty.
 			- [x] Create a tab for each file on startup.
-- [ ] Code should be written in such a way that multiple-developers can work on different aspects of the codebase without creating merge-conflicts. i.e. use modules, avoid tight-coupling, good compile-time dependencies, etc.
+- Documents
+  - 'text' - the text file.
+  - 'image' - the image file. 
+- Architecture
+    - [ ] Code should be written in such a way that multiple-developers can work on different aspects of the codebase without creating merge-conflicts. i.e. use modules, avoid tight-coupling, good compile-time dependencies, etc.
+    - [x] The application itself must own the documents (images, text), not the tabs themselves.
+    - [x] When the last tab for a document is closed, the document should be dropped/closed.
 - Bonus points
-	- [ ] Add 'Display in window' on tab context menu which when clicked displays the document in a new window with no tab bar, and where the window title is the name of the file.
+	- [ ] Native look and feel controls.
+	- [x] Some way of closing all the tabs in one go (e.g. "Close all" button on toolbar).
+    - [ ] Add 'Display in window' on tab context menu which when clicked displays the document in a new window with no tab bar, and where the window title is the name of the file.
 	- [ ] Multiple tabs for the same document, e.g. right click a tab, click 'Duplicate'.  Changes in one tab are reflected in the other.
 	- [ ] Status bar, showing some active-tab-specific state, e.g. last click location on image tabs. changes when changing tabs. (e.g. IDEs often show line number, offset, and selected line/character counts in the status bar).
 	- [ ] When two tabs are open, where the file name names of the document are the same, but the directory the file is in is different, show enough of the path to be able to distingush the two tabs.
@@ -97,4 +108,3 @@ Implementing this forces the developer to learn about some key points of the fra
 	- [ ] Draggable divider between sidebar and content.
     - [ ] Tests for individual components.
     - [ ] Integration/Behavioral tests.
-    - [ ] Some way of closing all the tabs in one go.
