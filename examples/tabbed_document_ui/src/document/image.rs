@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 use iced::{ContentFit, Element, Length};
-use iced::advanced::graphics::image::image_rs::image_dimensions;
 use iced::alignment::{Horizontal, Vertical};
-use iced::widget::{image, row, container, button};
+use iced::widget::{row, container, button};
 use iced::widget::image::viewer;
 use crate::document::{Sidebar, SidebarItem};
-
 
 #[derive(Debug, Clone, Default)]
 pub struct Coordinate {
@@ -15,7 +13,7 @@ pub struct Coordinate {
 
 pub struct ImageDocument {
     pub path: PathBuf,
-    handle: image::Handle,
+    handle: iced::widget::image::Handle,
 
     state: ImageDocumentState,
 }
@@ -44,7 +42,7 @@ impl ImageDocument {
     pub fn new(path: PathBuf) -> Self {
         println!("creating image document. path: {:?}", path);
 
-        let handle = image::Handle::from_path(&path);
+        let handle = iced::widget::image::Handle::from_path(&path);
 
         let mut sidebar = Sidebar::default();
 
@@ -53,7 +51,7 @@ impl ImageDocument {
             path.to_str().unwrap().to_string()
         ));
 
-        let dimensions = image_dimensions(&path);
+        let dimensions = image::image_dimensions(&path);
         let dimensions_message = match dimensions {
             Ok((x,y)) => format!("x: {}, y: {}", x, y),
             Err(_) => "Error".to_string()
