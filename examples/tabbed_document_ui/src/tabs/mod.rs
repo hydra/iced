@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
-use iced_aw::style::tab_bar;
-use iced_aw::TabLabel;
 use slotmap::{new_key_type, SlotMap};
 use slotmap::basic::Iter;
-use iced::{Element, Length};
+use iced::{widget, Alignment, Element, Length};
+use iced::widget::{column, button, horizontal_space, row, scrollable, text};
+use iced::widget::scrollable::{Direction, Scrollbar};
 
 new_key_type! {
     /// A key for a tab
@@ -12,7 +12,7 @@ new_key_type! {
 
 #[derive(Debug, Clone)]
 pub enum TabMessage<TKM> {
-    SelectTab(TabKey),
+    ActivateTab(TabKey),
     CloseTab(TabKey),
     TabKindMessage(TabKey, TKM),
 }
@@ -25,23 +25,30 @@ pub enum TabAction<TKA, TK> {
 
 pub struct Tabs<TK, TKM, TKA> {
     tabs: SlotMap<TabKey, TK>,
-    selected: Option<TabKey>,
+    history: Vec<TabKey>,
+    active: Option<TabKey>,
     _phantom1: PhantomData<TKM>,
     _phantom2: PhantomData<TKA>,
 }
 
 impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     pub fn push(&mut self, tab_kind: TK) -> TabKey {
-        self.tabs.insert(tab_kind)
+        let key = self.tabs.insert(tab_kind);
+        self.history.push(key);
+
+        key
     }
 
     pub fn activate(&mut self, key: TabKey) {
-        let _previously_selected = self.selected.replace(key);
+        let _previously_active = self.active.replace(key);
+        self.history.push(key);
+        self.history.dedup();
     }
 
     pub fn close_all(&mut self) -> Vec<(TabKey, TK)> {
         let closed_tabs: Vec<(TabKey, TK)> = self.tabs.drain().collect();
-        let _previously_selected = self.selected.take();
+        let _previously_selected = self.active.take();
+        self.history.clear();
         closed_tabs
     }
 
@@ -52,20 +59,40 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     pub fn get(&self, key: TabKey) -> Option<&TK> {
         self.tabs.get(key)
     }
+
+    pub fn active(&self) -> Option<(TabKey, &TK)> {
+        self.active.map(|key|(key, self.tabs.get(key).unwrap()))
+    }
+
+    fn close(&mut self, key: TabKey) -> TK {
+        // remove the key from the history, so we don't try and switch to it again.
+        self.history.retain(|&other_key| other_key != key);
+        self.history.dedup();
+
+        if let Some(recent_key) = self.history.pop() {
+            self.activate(recent_key);
+        } else {
+            let _previously_active = self.active.take();
+        }
+
+        let closed_tab = self.tabs.remove(key).unwrap();
+        closed_tab
+    }
 }
 
 impl<TK, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     fn default() -> Self {
         Self {
             tabs: SlotMap::default(),
-            selected: None,
+            history: Default::default(),
+            active: None,
             _phantom1: Default::default(),
             _phantom2: Default::default(),
         }
     }
 }
 
-impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
+impl<TK, TKM: Clone, TKA> Tabs<TK, TKM, TKA> {
     pub fn update<UF>(
         &mut self,
         message: TabMessage<TKM>,
@@ -81,20 +108,61 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
 
                 TabAction::TabAction(action)
             },
-            TabMessage::SelectTab(key) => {
-                self.selected = Some(key);
+            TabMessage::ActivateTab(key) => {
+                self.active = Some(key);
                 TabAction::TabSelected(key)
             },
             TabMessage::CloseTab(key) => {
-                match self.selected {
-                    Some(selected) if selected == key => {
-                        let _previously_selected = self.selected.take();
-                    }
-                    _ => {}
-                }
-                let closed_tab = self.tabs.remove(key).unwrap();
+                let closed_tab = self.close(key);
                 TabAction::TabClosed(key, closed_tab)
             },
+        }
+    }
+
+    fn build_tab_bar<'tk, 'label, LF>(&'label self, label_fn: LF) -> Element<'label, TabMessage<TKM>>
+    where
+        LF: Fn(TabKey, &'label TK) -> String,
+    {
+        let tab_buttons = self.tabs.iter().map(|(key, tab)|{
+            let label = label_fn(key, tab);
+            let button = button(
+                row![
+                    text(label),
+                    button("X")
+                        .style(button::text)
+                        .on_press_with(move || TabMessage::CloseTab(key))
+                ]
+                    .spacing(4)
+                    .align_y(Alignment::Center)
+            )
+                .on_press_with(move || TabMessage::ActivateTab(key))
+                .style(if self.is_active(key) {
+                    button::primary
+                } else {
+                    button::secondary
+                })
+                .into();
+
+            button
+        });
+
+        let tab_bar = scrollable(
+            row(tab_buttons)
+                .spacing(2)
+        )
+            .width(Length::Fill)
+            .direction(Direction::Horizontal(
+                Scrollbar::new().width(2).spacing(0).scroller_width(2),
+            ))
+            .into();
+
+        tab_bar
+    }
+
+    fn is_active(&self, key: TabKey) -> bool {
+        match self.active {
+            Some(other_key) if key.eq(&other_key) => true,
+            _ => false,
         }
     }
 
@@ -105,47 +173,25 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     ) -> Element<'tk, TabMessage<TKM>>
     where
         VF: Fn(TabKey, &'tk TK) -> Element<'tk, TKM>,
-        LF: Fn(TabKey, &'tk TK) -> String,
+        LF: Fn(TabKey, &TK) -> String,
     {
-        let tab_bar = self.tabs
-            .iter()
-            .fold(
-                iced_aw::Tabs::<TabMessage<TKM>, TabKey>::new(|tab_key|{
-                    TabMessage::SelectTab(tab_key)
-                })
-                    .tab_icon_position(iced_aw::tabs::Position::Bottom)
-                    .on_close(|tab_key|{
-                        TabMessage::CloseTab(tab_key)
-                    })
-                    .tab_bar_style(Box::new(tab_bar::primary))
-                ,
-                |tab_bar, (key, tab)| {
 
-                    // FIXME actions in ANY tabs, e.g. text selection in a texttab, cause ALL tab views to be re-created!
-                    let tab_view = view_fn(key, tab);
+        let tab_bar = self.build_tab_bar(label_fn);
 
-                    let view = tab_view
-                        .map(move |message|{
-                            TabMessage::TabKindMessage(key, message)
-                        });
+        let current_tab = if let Some((key, tab)) = self.active() {
+            view_fn(key, tab)
+                .map(move |message|TabMessage::TabKindMessage(key, message))
+        } else {
+            horizontal_space().into()
+        };
 
-                    let label = label_fn(key, tab);
 
-                    let tab_bar = tab_bar.push(key, TabLabel::Text(label), view);
+        let content = widget::container(current_tab)
+            .width(Length::Fill)
+            .height(Length::Fill);
+            // .align_x(Alignment::Center)
+            // .align_y(Alignment::Center);
 
-                    match self.selected {
-                        Some(selected_key) if selected_key == key => {
-                            tab_bar.set_active_tab(&selected_key)
-                        }
-                        _ => tab_bar
-                    }
-                }
-            );
-
-        let tab_bar: Element<'tk, TabMessage<TKM>> = tab_bar
-            .height(Length::Fill)
-            .into();
-
-        tab_bar
+        column![tab_bar, content].into()
     }
 }

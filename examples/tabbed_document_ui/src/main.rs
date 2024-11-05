@@ -269,6 +269,7 @@ impl TabbedDocumentUI {
 
         let toolbar: Element<'_, ToolbarMessage> =
             row![home_button, new_button, open_button, close_all_button]
+                .spacing(2)
                 .into();
 
         let mapped_toolbar: Element<'_, Message> = toolbar
