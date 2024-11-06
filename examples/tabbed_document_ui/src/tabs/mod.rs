@@ -99,12 +99,12 @@ impl<TK, TKM: Clone, TKA> Tabs<TK, TKM, TKA> {
         mut update_fn: UF
     ) -> TabAction<TKA, TK>
     where
-        UF: FnMut(&mut TK, TKM) -> TKA
+        UF: FnMut(TabKey, &mut TK, TKM) -> TKA
     {
         match message {
             TabMessage::TabKindMessage(key, message) => {
                 let tab = self.tabs.get_mut(key).unwrap();
-                let action = update_fn(tab, message);
+                let action = update_fn(key, tab, message);
 
                 TabAction::TabAction(action)
             },

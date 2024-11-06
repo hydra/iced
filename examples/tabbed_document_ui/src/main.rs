@@ -21,7 +21,7 @@ use crate::config::Config;
 use crate::document::{DocumentKey, DocumentKind};
 use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
-use crate::document_tab::DocumentTab;
+use crate::document_tab::{DocumentTab, DocumentTabAction, DocumentTabMessage};
 use crate::home_tab::{HomeTab, HomeTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
 
@@ -56,11 +56,17 @@ pub fn main() -> iced::Result {
                 }
 
                 let documents_to_open = config.open_document_paths.clone();
-                for document_path in documents_to_open {
-                    let _ = ui.open_document(&document_path);
-                }
 
-                (ui, Task::none())
+                let tasks: Vec<Task<Message>> = documents_to_open.iter().filter_map(|document_path|{
+                    let result = ui.open_document(&document_path);
+
+                    match result {
+                        Ok(message) => Some(Task::done(message)),
+                        _ => None
+                    }
+                }).collect();
+
+                (ui, Task::batch(tasks))
             }
         });
 
@@ -143,13 +149,13 @@ impl TabbedDocumentUI {
     }
 
     fn on_tab_message(&mut self, message: TabMessage<TabKindMessage>) -> Task<Message> {
-        let action = self.tabs.update(message, |tab, message|{
+        let action = self.tabs.update(message, |key, tab, message|{
             match (tab, message) {
                 (TabKind::Home(tab), TabKindMessage::HomeTabMessage(message)) => {
-                    TabKindAction::HomeTabAction(tab.update(message))
+                    TabKindAction::HomeTabAction(key, tab.update(message))
                 }
                 (TabKind::Document(tab), TabKindMessage::DocumentTabMessage(message)) => {
-                    TabKindAction::DocumentTabAction(tab.update(message, &mut self.documents))
+                    TabKindAction::DocumentTabAction(key, tab.update(message, &mut self.documents))
                 }
                 _ => unreachable!()
             }
@@ -203,13 +209,18 @@ impl TabbedDocumentUI {
                 .show();
         }
 
-        if let Some(Err(error)) = result {
-            // Note: a Task is required due to a focus issue.
-            //       on windows the task the dialog is not displayed until 'alt' is pressed (yes, really)
-            //       observed if MessageDialog::show is called now instead of using Task::perform
-            Task::perform(show_error(error), |_result| Message::None)
-        } else {
-            Task::none()
+        match result {
+            Some(Err(error)) => {
+                // Note: a Task is required due to a focus issue.
+                //       on windows the task the dialog is not displayed until 'alt' is pressed (yes, really)
+                //       observed if MessageDialog::show is called now instead of using Task::perform
+                Task::perform(show_error(error), |_result| Message::None)
+            },
+            Some(Ok(message)) => {
+                println!("on_toolbar_open_document, message: {:?}", message);
+                Task::done(message)
+            }
+            None => Task::none()
         }
     }
 
@@ -226,19 +237,47 @@ impl TabbedDocumentUI {
 
     fn on_tab_action(&mut self, tab_kind_action: TabKindAction) -> Task<Message> {
         match tab_kind_action {
-            TabKindAction::HomeTabAction(home_tab_action) => {
-                println!("home tab action: {:?}", home_tab_action);
+            TabKindAction::HomeTabAction(key, home_tab_action) => {
+                println!("home tab, action: {:?}, key: {:?}", home_tab_action, key);
                 match home_tab_action {
                     HomeTabAction::ShowOnStartupChanged => {
                         // TODO something...
                     }
                 }
+                Task::none()
             }
-            TabKindAction::DocumentTabAction(document_tab_action) => {
-                println!("document tab action: {:?}", document_tab_action);
+            TabKindAction::DocumentTabAction(key, document_tab_action) => {
+                println!("document tab action, key: {:?}", key);
+
+                match document_tab_action {
+                    DocumentTabAction::None => Task::none(),
+                    DocumentTabAction::TextDocumentTask(task) => {
+                        task.map(move |message|{
+                            Message::TabMessage(
+                                TabMessage::TabKindMessage(
+                                    key,
+                                    TabKindMessage::DocumentTabMessage(
+                                        DocumentTabMessage::TextDocumentMessage(message)
+                                    )
+                                )
+                            )
+                        })
+                    }
+                    DocumentTabAction::ImageDocumentTask(task) => {
+                        task.map(move |message|{
+                            Message::TabMessage(
+                                TabMessage::TabKindMessage(
+                                    key,
+                                    TabKindMessage::DocumentTabMessage(
+                                        DocumentTabMessage::ImageDocumentMessage(message)
+                                    )
+                                )
+                            )
+                        })
+                    }
+                }
             }
         }
-        Task::none()
     }
 
     fn on_tab_closed(&mut self, key: TabKey, tab_kind: TabKind) -> Task<Message> {
@@ -342,33 +381,39 @@ impl TabbedDocumentUI {
         }
     }
 
-    fn open_document(&mut self, path: &PathBuf) -> Result<(), OpenDocumentError>{
-
+    fn open_document(&mut self, path: &PathBuf) -> Result<Message, OpenDocumentError> {
         let path = path::absolute(path)
-            .or_else(|cause|Err(OpenDocumentError::IoError {cause}))?;
+            .or_else(|cause| Err(OpenDocumentError::IoError { cause }))?;
 
         let extension = path.extension().unwrap().to_str().unwrap();
 
-        let document = if SUPPORTED_TEXT_EXTENSIONS.contains(&extension) {
-            let text_document = TextDocument::new(path.clone());
+        let message = if SUPPORTED_TEXT_EXTENSIONS.contains(&extension) {
+            let (document, message) = TextDocument::new(path.clone());
 
-            DocumentKind::TextDocument(text_document)
+            let key = self.make_document_tab(DocumentKind::TextDocument(document));
+            Message::TabMessage(TabMessage::TabKindMessage(key, TabKindMessage::DocumentTabMessage(DocumentTabMessage::TextDocumentMessage(message))))
+
         } else if SUPPORTED_IMAGE_EXTENSIONS.contains(&extension) {
-            let image_document = ImageDocument::new(path.clone());
-
-            DocumentKind::ImageDocument(image_document)
+            let (document, message) = ImageDocument::new(path.clone());
+            let key = self.make_document_tab(DocumentKind::ImageDocument(document));
+            Message::TabMessage(TabMessage::TabKindMessage(key, TabKindMessage::DocumentTabMessage(DocumentTabMessage::ImageDocumentMessage(message))))
         } else {
             return Err(OpenDocumentError::UnsupportedFileExtension { extension: extension.to_string() });
         };
 
+        println!("open_document message: {:?}", message);
 
+        Ok(message)
+    }
+
+    fn make_document_tab(&mut self, document: DocumentKind) -> TabKey {
         let document_key = self.documents.insert(document);
 
         let document_tab = DocumentTab::new(document_key);
         let key = self.tabs.push(TabKind::Document(document_tab));
         self.tabs.activate(key);
 
-        Ok(())
+        key
     }
 
     /// Update the config with the currently open documents

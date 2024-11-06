@@ -62,7 +62,7 @@ Implementing this forces the developer to learn about some key points of the fra
 		- 'Text' tab, displays a 'text' document.
 			- [x] Filename must appear in tab.
 			- [x] Show text file content in an editor.
-			- [ ] Content must be loaded in a thread or async, in the background.
+			- [x] Content must be loaded in a thread or async, in the background.
 			- Tab State
 				- [ ] Maintain text selection.
 				- [ ] Maintain caret position.
@@ -76,7 +76,7 @@ Implementing this forces the developer to learn about some key points of the fra
             - [x] Image is scaled-up to fit window, aspect ratio must be preserved.
             - [ ] Do not allow image to be scaled down.
 			- [ ] If too big to fit in the window, scrollbars must be present to allow panning
-			- [ ] Content must be loaded in a thread or async, in the background.
+			- [x] Content must be loaded in a thread or async, in the background.
 			- Tab State
 				- [ ] Maintain X/Y coordinates of last click of anywhere on the image.
 			- Info sidebar with a grid of key/value items

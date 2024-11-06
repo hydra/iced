@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
-use iced::Element;
-use iced::widget::{row, text_editor};
+use std::time::Duration;
+use iced::{widget, Element};
+use iced::widget::{container, row, text_editor};
 use crate::document::{Sidebar, SidebarItem};
 
 pub struct TextDocument {
@@ -12,7 +13,7 @@ pub struct TextDocument {
 
 #[derive(Default)]
 pub struct TextDocumentState {
-    content: text_editor::Content,
+    content: Option<text_editor::Content>,
     sidebar: Sidebar,
 }
 
@@ -20,17 +21,20 @@ pub struct TextDocumentState {
 pub enum TextDocumentMessage {
     None,
     Edit(text_editor::Action),
+    Load,
+    Loaded(String),
 }
 
 #[derive(Debug)]
 pub enum TextDocumentAction {
     None,
+    Load
 }
 
 const SIDEBAR_ITEM_PATH: &str = "PATH";
 
 impl TextDocument {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf) -> (Self, TextDocumentMessage) {
         println!("creating text document. path: {:?}", path);
 
         let mut sidebar = Sidebar::default();
@@ -39,17 +43,27 @@ impl TextDocument {
             path.to_str().unwrap().to_string()
         ));
 
-        let text = fs::read_to_string(&path).unwrap();
-        let content = text_editor::Content::with_text(&text);
         let state = TextDocumentState {
-            content,
+            content: None,
             sidebar,
         };
 
-        Self {
-            path,
-            state,
-        }
+        (
+            Self {
+                path,
+                state,
+            },
+            TextDocumentMessage::Load
+        )
+    }
+
+    pub async fn load(path: PathBuf) -> String {
+        let text = fs::read_to_string(&path).unwrap();
+
+        // Simulate slow loading
+        async_std::task::sleep(Duration::from_millis(500)).await;
+
+        text
     }
 
     pub fn view(&self) -> Element<'_, TextDocumentMessage> {
@@ -57,17 +71,26 @@ impl TextDocument {
         let sidebar = self.state.sidebar.view()
             .map(|_message|TextDocumentMessage::None);
 
-        println!("view. content, selection: {:?}", self.state.content.selection());
-        // FIXME every time the view is re-created, the state is is lost, e.g. when switching tabs.
-        //       lost state includes:
-        //       * caret position
-        //       * text selection
-        let text_editor = text_editor(&self.state.content)
-            .on_action(TextDocumentMessage::Edit);
+        let content_container = match &self.state.content {
+            Some(content) => {
+                println!("view. content, selection: {:?}", content.selection());
+                // FIXME every time the view is re-created, the state is is lost, e.g. when switching tabs.
+                //       lost state includes:
+                //       * caret position
+                //       * text selection
+                let text_editor = text_editor(&content)
+                    .on_action(TextDocumentMessage::Edit);
+
+                container(text_editor)
+            },
+            None => {
+                container(widget::text("Loading..."))
+            }
+        };
 
         let ui = row![
             sidebar,
-            text_editor,
+            content_container,
         ];
 
         ui
@@ -75,10 +98,26 @@ impl TextDocument {
     }
 
     pub fn update(&mut self, message: TextDocumentMessage) -> TextDocumentAction {
+        println!("text document update, message: {:?}", message);
         match message {
             TextDocumentMessage::Edit(action) => {
-                self.state.content.perform(action);
-                println!("update. content, selection: {:?}", self.state.content.selection());
+                match &mut self.state.content {
+                    Some(content) => {
+                        content.perform(action);
+                        println!("update. content, selection: {:?}", content.selection());
+                    },
+                    None => ()
+                }
+                TextDocumentAction::None
+            },
+            TextDocumentMessage::Load => {
+                TextDocumentAction::Load
+            },
+            TextDocumentMessage::Loaded(text) => {
+                let content = text_editor::Content::with_text(&text);
+
+                self.state.content.replace(content);
+
                 TextDocumentAction::None
             }
             TextDocumentMessage::None => unreachable!()

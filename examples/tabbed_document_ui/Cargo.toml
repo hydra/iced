@@ -22,6 +22,7 @@ serde_json = { version = "1.0.128" }
 
 rfd = { version = "0.15.0" }
 thiserror = "1.0.65"
+async-std = "1.12.0"
 
 [lints]
 #workspace = true

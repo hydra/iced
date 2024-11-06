@@ -1,5 +1,6 @@
 use crate::document_tab::{DocumentTab, DocumentTabAction, DocumentTabMessage};
 use crate::home_tab::{HomeTab, HomeTabAction, HomeTabMessage};
+use crate::tabs::TabKey;
 
 pub enum TabKind {
     Home(HomeTab),
@@ -13,6 +14,6 @@ pub enum TabKindMessage {
 }
 
 pub enum TabKindAction {
-    HomeTabAction(HomeTabAction),
-    DocumentTabAction(DocumentTabAction),
+    HomeTabAction(TabKey, HomeTabAction),
+    DocumentTabAction(TabKey, DocumentTabAction),
 }

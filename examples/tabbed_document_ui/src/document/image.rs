@@ -1,5 +1,7 @@
+use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
-use iced::{ContentFit, Element, Length};
+use std::time::Duration;
+use iced::{widget, ContentFit, Element, Length};
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::{row, container, button};
 use iced::widget::image::viewer;
@@ -13,7 +15,7 @@ pub struct Coordinate {
 
 pub struct ImageDocument {
     pub path: PathBuf,
-    handle: iced::widget::image::Handle,
+    handle: Option<iced::widget::image::Handle>,
 
     state: ImageDocumentState,
 }
@@ -24,14 +26,24 @@ pub struct ImageDocumentState {
     sidebar: Sidebar,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ImageDocumentMessage {
     None,
     ImageClicked(Coordinate),
+    Load,
+    Loaded(iced::widget::image::Handle)
+}
+
+impl Debug for ImageDocumentMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // TODO improve this
+        f.write_str("ImageDocumentMessage")
+    }
 }
 
 pub enum ImageDocumentAction {
-    None
+    None,
+    Load,
 }
 
 const SIDEBAR_ITEM_PATH: &str = "PATH";
@@ -39,10 +51,8 @@ const SIDEBAR_ITEM_SIZE: &str = "SIZE";
 const SIDEBAR_ITEM_LAST_CLICKED_COORDINATE: &str = "LAST_CLICKED_COORDINATE";
 
 impl ImageDocument {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf) -> (Self, ImageDocumentMessage) {
         println!("creating image document. path: {:?}", path);
-
-        let handle = iced::widget::image::Handle::from_path(&path);
 
         let mut sidebar = Sidebar::default();
 
@@ -67,14 +77,26 @@ impl ImageDocument {
             "None".to_string()
         ));
 
-        Self {
-            path,
-            handle,
-            state: ImageDocumentState {
-                last_clicked: Default::default(),
-                sidebar,
+        (
+            Self {
+                path,
+                handle: None,
+                state: ImageDocumentState {
+                    last_clicked: Default::default(),
+                    sidebar,
+                },
             },
-        }
+            ImageDocumentMessage::Load
+        )
+    }
+
+    pub async fn load(path: PathBuf) -> iced::widget::image::Handle {
+        let handle = iced::widget::image::Handle::from_path(&path);
+
+        // Simulate slow loading
+        async_std::task::sleep(Duration::from_millis(500)).await;
+
+        handle
     }
 
     pub fn view(&self) -> Element<'_, ImageDocumentMessage> {
@@ -82,22 +104,29 @@ impl ImageDocument {
         let sidebar_element = self.state.sidebar.view()
             .map(|_message|ImageDocumentMessage::None);
 
-        // FIXME the image should be:
-        //       * top-left justified
-        //       * maintain it's aspect ratio
-        //       * fill the available space on the shortest edge of the container
-        //       * have no whitespace to the left of the image
-        //       * have no whitespace above the image
-        //       However, no amount of fiddling with the .width/height/align methods makes it work.
-        //       As soon as you specify either a width or height for the image, or a viewer you get
-        //       padding either on either left AND right or top AND bottom.
+        let image_container = match &self.handle {
+            Some(handle) => {
+                // FIXME the image should be:
+                //       * top-left justified
+                //       * maintain it's aspect ratio
+                //       * fill the available space on the shortest edge of the container
+                //       * have no whitespace to the left of the image
+                //       * have no whitespace above the image
+                //       However, no amount of fiddling with the .width/height/align methods makes it work.
+                //       As soon as you specify either a width or height for the image, or a viewer you get
+                //       padding either on either left AND right or top AND bottom.
 
-        let image_viewer = viewer(self.handle.clone())
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .content_fit(ContentFit::Contain);
+                let image_viewer = viewer(handle.clone())
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .content_fit(ContentFit::Contain);
 
-        let image_container = container(image_viewer)
+                container(image_viewer)
+            },
+            None => {
+                container(widget::text("Loading..."))
+            }
+        }
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(Horizontal::Left)
@@ -124,7 +153,7 @@ impl ImageDocument {
 
     pub fn update(&mut self, message: ImageDocumentMessage) -> ImageDocumentAction {
         match message {
-            ImageDocumentMessage::None => (),
+            ImageDocumentMessage::None => ImageDocumentAction::None,
             ImageDocumentMessage::ImageClicked(coordinate) => {
                 self.state.sidebar.update_item(SIDEBAR_ITEM_LAST_CLICKED_COORDINATE,|item: &mut SidebarItem|{
                     let SidebarItem::Text(_label, value) = item;
@@ -132,8 +161,13 @@ impl ImageDocument {
                 });
 
                 self.state.last_clicked = Some(coordinate);
+                ImageDocumentAction::None
+            }
+            ImageDocumentMessage::Load => ImageDocumentAction::Load,
+            ImageDocumentMessage::Loaded(handle) => {
+                self.handle.replace(handle);
+                ImageDocumentAction::None
             }
         }
-        ImageDocumentAction::None
     }
 }

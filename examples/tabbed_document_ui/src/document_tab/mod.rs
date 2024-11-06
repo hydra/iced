@@ -1,8 +1,8 @@
 use slotmap::SlotMap;
-use iced::Element;
+use iced::{Element, Task};
 use crate::document::{DocumentKey, DocumentKind};
-use crate::document::image::ImageDocumentMessage;
-use crate::document::text::TextDocumentMessage;
+use crate::document::image::{ImageDocument, ImageDocumentAction, ImageDocumentMessage};
+use crate::document::text::{TextDocument, TextDocumentAction, TextDocumentMessage};
 
 pub struct DocumentTab {
     key: DocumentKey,
@@ -27,9 +27,11 @@ pub enum DocumentTabMessage {
     ImageDocumentMessage(ImageDocumentMessage),
 }
 
-#[derive(Debug)]
+//#[derive(Debug)]
 pub enum DocumentTabAction {
-    None
+    None,
+    TextDocumentTask(Task<TextDocumentMessage>),
+    ImageDocumentTask(Task<ImageDocumentMessage>),
 }
 
 impl DocumentTab {
@@ -64,12 +66,25 @@ impl DocumentTab {
 
         match (document, message) {
             (DocumentKind::TextDocument(document), DocumentTabMessage::TextDocumentMessage(message)) => {
-                let _action = document.update(message);
-                DocumentTabAction::None
+                let action = document.update(message);
+
+                match action {
+                    TextDocumentAction::None => DocumentTabAction::None,
+                    TextDocumentAction::Load => {
+                        let task = Task::perform(TextDocument::load(document.path.clone()), TextDocumentMessage::Loaded);
+                        DocumentTabAction::TextDocumentTask(task)
+                    }
+                }
             },
             (DocumentKind::ImageDocument(document), DocumentTabMessage::ImageDocumentMessage(message)) => {
-                let _action = document.update(message);
-                DocumentTabAction::None
+                let action = document.update(message);
+                match action {
+                    ImageDocumentAction::None => DocumentTabAction::None,
+                    ImageDocumentAction::Load => {
+                        let task = Task::perform(ImageDocument::load(document.path.clone()), ImageDocumentMessage::Loaded);
+                        DocumentTabAction::ImageDocumentTask(task)
+                    }
+                }
             },
             _ => unreachable!()
         }
