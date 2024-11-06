@@ -39,6 +39,12 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
         key
     }
 
+    pub fn replace(&mut self, key: TabKey, tab_kind: TK) {
+        if let Some(value) = self.tabs.get_mut(key) {
+            *value = tab_kind
+        }
+    }
+
     pub fn activate(&mut self, key: TabKey) {
         let _previously_active = self.active.replace(key);
         self.history.push(key);

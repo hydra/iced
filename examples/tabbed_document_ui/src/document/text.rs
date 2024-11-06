@@ -34,8 +34,8 @@ pub enum TextDocumentAction {
 const SIDEBAR_ITEM_PATH: &str = "PATH";
 
 impl TextDocument {
-    pub fn new(path: PathBuf) -> (Self, TextDocumentMessage) {
-        println!("creating text document. path: {:?}", path);
+    pub fn from_path(path: PathBuf) -> (Self, TextDocumentMessage) {
+        println!("loading text document. path: {:?}", path);
 
         let mut sidebar = Sidebar::default();
         sidebar.add_item(SIDEBAR_ITEM_PATH, SidebarItem::Text(
@@ -56,6 +56,16 @@ impl TextDocument {
             TextDocumentMessage::Load
         )
     }
+
+    pub fn new(path: PathBuf) -> (Self, TextDocumentMessage) {
+        println!("creating text document. path: {:?}", path);
+
+        // FUTURE the file could be created asynchronously instead of directly here
+        let _result = fs::write(&path, "New text file").ok();
+
+        Self::from_path(path)
+    }
+
 
     pub async fn load(path: PathBuf) -> String {
         let text = fs::read_to_string(&path).unwrap();

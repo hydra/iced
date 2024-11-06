@@ -23,10 +23,12 @@ use crate::document::image::ImageDocument;
 use crate::document::text::TextDocument;
 use crate::document_tab::{DocumentTab, DocumentTabAction, DocumentTabMessage};
 use crate::home_tab::{HomeTab, HomeTabAction};
+use crate::new_tab::{NewDocumentKind, NewTab, NewTabAction};
 use crate::tabs::{TabAction, TabKey, TabMessage};
 
 mod home_tab;
 mod document_tab;
+mod new_tab;
 mod config;
 mod document;
 
@@ -157,6 +159,9 @@ impl TabbedDocumentUI {
                 (TabKind::Document(tab), TabKindMessage::DocumentTabMessage(message)) => {
                     TabKindAction::DocumentTabAction(key, tab.update(message, &mut self.documents))
                 }
+                (TabKind::New(tab), TabKindMessage::NewTabMessage(message)) => {
+                    TabKindAction::NewTabAction(key, tab.update(message))
+                }
                 _ => unreachable!()
             }
         });
@@ -225,8 +230,11 @@ impl TabbedDocumentUI {
     }
 
     fn on_toolbar_new_document(&mut self) -> Task<Message> {
+        let new_tab = NewTab::new();
+        let key = self.tabs.push(TabKind::New(new_tab));
+        self.tabs.activate(key);
 
-        todo!()
+        Task::none()
     }
 
     fn on_tab_selected(&mut self, key: TabKey) -> Task<Message> {
@@ -270,6 +278,26 @@ impl TabbedDocumentUI {
                                     key,
                                     TabKindMessage::DocumentTabMessage(
                                         DocumentTabMessage::ImageDocumentMessage(message)
+                                    )
+                                )
+                            )
+                        })
+                    }
+                }
+            }
+            TabKindAction::NewTabAction(key, new_tab_action) => {
+                match new_tab_action {
+                    NewTabAction::None => Task::none(),
+                    NewTabAction::CreateDocument(name, path, kind) => {
+                        self.create_document(key, name, path, kind)
+                    }
+                    NewTabAction::Task(task) => {
+                        task.map(move |message| {
+                            Message::TabMessage(
+                                TabMessage::TabKindMessage(
+                                    key,
+                                    TabKindMessage::NewTabMessage(
+                                        message
                                     )
                                 )
                             )
@@ -329,12 +357,19 @@ impl TabbedDocumentUI {
                     .map(|message|{
                         TabKindMessage::DocumentTabMessage(message)
                     })
+                    .into(),
+                TabKind::New(tab) => tab
+                    .view()
+                    .map(|message|{
+                        TabKindMessage::NewTabMessage(message)
+                    })
                     .into()
             }
         }, |_key, tab|{
             match tab {
                 TabKind::Home(tab) => tab.label(),
                 TabKind::Document(tab) => tab.label(&self.documents),
+                TabKind::New(tab) => tab.label(),
             }
 
         });
@@ -388,7 +423,7 @@ impl TabbedDocumentUI {
         let extension = path.extension().unwrap().to_str().unwrap();
 
         let message = if SUPPORTED_TEXT_EXTENSIONS.contains(&extension) {
-            let (document, message) = TextDocument::new(path.clone());
+            let (document, message) = TextDocument::from_path(path.clone());
 
             let key = self.make_document_tab(DocumentKind::TextDocument(document));
             Message::TabMessage(TabMessage::TabKindMessage(key, TabKindMessage::DocumentTabMessage(DocumentTabMessage::TextDocumentMessage(message))))
@@ -429,6 +464,30 @@ impl TabbedDocumentUI {
         println!("open_documents: {:?}", open_documents);
 
         self.config.lock().unwrap().open_document_paths = open_documents;
+    }
+
+    fn create_document(&mut self, key: TabKey, mut name: String, mut path: PathBuf, kind: NewDocumentKind) -> Task<Message> {
+        println!("create document. name: {:?}, path: {:?}, kind: {:?}", name, path, kind);
+
+        match kind {
+            NewDocumentKind::Text => {
+                name.push_str(".txt");
+                path.push(&name);
+
+                let (document, message) = TextDocument::new(path);
+
+                let document_key = self.documents.insert(DocumentKind::TextDocument(document));
+
+                let document_tab = DocumentTab::new(document_key);
+                self.tabs.replace(key, TabKind::Document(document_tab));
+
+                let task_message = Message::TabMessage(TabMessage::TabKindMessage(key, TabKindMessage::DocumentTabMessage(DocumentTabMessage::TextDocumentMessage(message))));
+                Task::done(task_message)
+            }
+            NewDocumentKind::Image => {
+                todo!()
+            }
+        }
     }
 }
 
