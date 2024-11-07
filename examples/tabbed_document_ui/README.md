@@ -26,7 +26,7 @@ Implementing this forces the developer to learn about some key points of the fra
         - [x] If an unsupported file is selected, show a native error dialog.
         - [x] When a file is opened, a tab appears and depending on the file type, it shows different content in the tab. (e.g. '.txt' text shows the 'Text' tab, '.bmp' shows the 'Image' tab).
 	- 'New' button
-	    - [ ] When clicked the 'New' tab is shown, see below.
+	    - [x] When clicked the 'New' tab is shown, see below.
 	- [ ] Language dropdown, choose between at least 2 languages (e.g. English and Spanish).
         - [ ] Changing the language should cause all UI text to be immediately displayed in the selected language without requiring a restart. 
 - Tab bar
@@ -44,21 +44,21 @@ Implementing this forces the developer to learn about some key points of the fra
 			- [x] Shows a welcome message.
 			- [x] Shows a checkbox with the message 'Open on startup', see 'state items' below.
 		- 'New' tab
-			- [ ] a form is shown with 3 main controls , each with a label, in a grid with labels on the left. Below the form an OK button should be present.
+			- [x] a form is shown with 3 main controls , each with a label, in a grid with labels on the left. Below the form an OK button should be present.
 				- Name - text entry, ideally with placeholder text, no default name.
 				- Type - dropdown, initially nothing selected, choose between Text or Bitmap.
 					- dropdown should always appear, correctly and allow all elements to be chosen even if the window is resized.
 				- Directory - non-editable path with a button to show a native directory selector to be used, that when selected shows the path.
-			- [ ] Title of the new tab is 'New'
-			- [ ] Multiple 'new' tabs are allowed, each with their own state.
+			- [x] Title of the new tab is 'New'
+			- [x] Multiple 'new' tabs are allowed, each with their own state.
             - Tab state
-			    - [ ] The form field values.
+			    - [x] The form field values.
 			- When OK is pressed
-				- [ ] the tab name should be updated to the name of the file.
-				- [ ] a file should be created with the appropriate extension.
-				- [ ] it's content should be displayed in the same tab, see tab content below.
-				- [ ] there should be no visible removal and insertion of any new tab.
-				- [ ] tab ordering must be preserved.  e.g. given tabs 'File1, New, File2' pressing 'Ok' on `New` should result in tabs 'File1, File3, File2', not 'File1, File2, File3'
+				- [x] the tab name should be updated to the name of the file.
+				- [x] a file should be created with the appropriate extension.
+				- [x] it's content should be displayed in the same tab, see tab content below.
+				- [x] there should be no visible removal and insertion of any new tab.
+				- [x] tab ordering must be preserved.  e.g. given tabs 'File1, New, File2' pressing 'Ok' on `New` should result in tabs 'File1, File3, File2', not 'File1, File2, File3'
 		- 'Text' tab, displays a 'text' document.
 			- [x] Filename must appear in tab.
 			- [x] Show text file content in an editor.
