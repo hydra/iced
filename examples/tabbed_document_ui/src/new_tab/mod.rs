@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use iced::{widget, Element, Task};
-use iced::widget::row;
+use iced::{widget, Element, Length, Task};
+use iced::widget::{row, column, horizontal_space};
 
 #[derive(Debug)]
 pub struct NewTab {
@@ -72,18 +72,49 @@ impl NewTab {
             None
         };
 
+        let form = column![
+            column![
+                widget::text("Name"),
+                widget::text_input("Name", &self.name)
+                    .on_input(NewTabMessage::NameChanged)
+                    .width(Length::Fill),
+            ]
+                .spacing(5),
+            column![
+                widget::text("Directory"),
+                row![
+                    widget::text_input("Directory", &self.directory.to_str().unwrap()),
+                    widget::button("...")
+                        .on_press(NewTabMessage::ChooseDirectory)
+                ]
+                    .spacing(5)
+                    .width(Length::Fill),
+            ]
+                .spacing(5),
+            column![
+                widget::text("Type"),
+                widget::pick_list(kinds, self.kind, NewTabMessage::KindSelected)
+                    .width(Length::Fill),
+            ]
+                .spacing(5),
+            row![
+                horizontal_space()
+                    .width(Length::Fill),
+                widget::button("Ok")
+                    .on_press_maybe(message_to_emit_when_valid)
+            ]
+        ]
+            .spacing(10);
+
         let elements = row![
-            widget::text("Name"),
-            widget::text_input("Name", &self.name)
-                .on_input(NewTabMessage::NameChanged),
-            widget::text("Directory"),
-            widget::text_input("Directory", &self.directory.to_str().unwrap()),
-            widget::button("...")
-                .on_press(NewTabMessage::ChooseDirectory),
-            widget::pick_list(kinds, self.kind, NewTabMessage::KindSelected),
-            widget::button("Ok")
-                .on_press_maybe(message_to_emit_when_valid)
-        ];
+            horizontal_space()
+                .width(Length::FillPortion(2)),
+            form
+                .width(Length::FillPortion(6)),
+            horizontal_space()
+                .width(Length::FillPortion(2)),
+        ]
+            .padding(50);
 
         elements
             .into()
