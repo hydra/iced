@@ -429,7 +429,7 @@ impl TabbedDocumentUI {
             Message::TabMessage(TabMessage::TabKindMessage(key, TabKindMessage::DocumentTabMessage(DocumentTabMessage::TextDocumentMessage(message))))
 
         } else if SUPPORTED_IMAGE_EXTENSIONS.contains(&extension) {
-            let (document, message) = ImageDocument::new(path.clone());
+            let (document, message) = ImageDocument::from_path(path.clone());
             let key = self.make_document_tab(DocumentKind::ImageDocument(document));
             Message::TabMessage(TabMessage::TabKindMessage(key, TabKindMessage::DocumentTabMessage(DocumentTabMessage::ImageDocumentMessage(message))))
         } else {
@@ -485,7 +485,25 @@ impl TabbedDocumentUI {
                 Task::done(task_message)
             }
             NewDocumentKind::Image => {
-                todo!()
+                name.push_str(".png");
+                path.push(&name);
+
+                let (document, message) = ImageDocument::new(path);
+
+                let document_key = self.documents.insert(DocumentKind::ImageDocument(document));
+
+                let document_tab = DocumentTab::new(document_key);
+                self.tabs.replace(key, TabKind::Document(document_tab));
+
+                let task_message = Message::TabMessage(
+                    TabMessage::TabKindMessage(
+                        key,
+                        TabKindMessage::DocumentTabMessage(
+                            DocumentTabMessage::ImageDocumentMessage(message)
+                        )
+                    )
+                );
+                Task::done(task_message)
             }
         }
     }
