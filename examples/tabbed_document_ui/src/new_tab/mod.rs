@@ -116,6 +116,14 @@ impl NewTab {
         ]
             .padding(50);
 
+        // FIXME when the window is resized such that the form elements are too small or not visible
+        //       the form should be scrollable to allow it to be used.
+        //       * attempted to wrap elements in a scrollable with horizontal and vertical scrolling
+        //         but that resulted in a panic
+        //       * attempted to wrap elements in a container with width+max_width and height+max height
+        //         but that still allowed the form to be made to small.
+        //       Notably there appears to be no 'min_width' or 'min_height'.
+
         elements
             .into()
     }
