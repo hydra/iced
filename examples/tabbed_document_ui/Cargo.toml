@@ -16,6 +16,7 @@ iced_fonts = { path = "../../../iced_fonts", features = ["nerd"]}
 #iced_aw = { version = "0.11.0" , feature = ["tab_bar"]}
 image = { version = "0.24", default-features = false }
 slotmap = "1.0.7"
+indexmap = "2.6.0"
 
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = { version = "1.0.128" }

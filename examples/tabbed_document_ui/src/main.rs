@@ -407,7 +407,7 @@ impl TabbedDocumentUI {
         );
 
         if let Some((key, _tab)) = home_tab {
-            self.tabs.activate(key);
+            self.tabs.activate(*key);
         } else {
             let home_tab = HomeTab::new(self.config.clone());
             let _key = self.tabs.push(TabKind::Home(home_tab));

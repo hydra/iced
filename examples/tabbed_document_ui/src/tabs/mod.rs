@@ -1,14 +1,13 @@
 use std::marker::PhantomData;
-use slotmap::{new_key_type, SlotMap};
-use slotmap::basic::Iter;
+use std::ops::RangeFull;
+use indexmap::IndexMap;
+use indexmap::map::Iter;
 use iced::{widget, Alignment, Element, Length};
 use iced::widget::{column, button, horizontal_space, row, scrollable, text};
 use iced::widget::scrollable::{Direction, Scrollbar};
 
-new_key_type! {
-    /// A key for a tab
-    pub struct TabKey;
-}
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct TabKey(u64);
 
 #[derive(Debug, Clone)]
 pub enum TabMessage<TKM> {
@@ -24,7 +23,8 @@ pub enum TabAction<TKA, TK> {
 }
 
 pub struct Tabs<TK, TKM, TKA> {
-    tabs: SlotMap<TabKey, TK>,
+    next_key_value: u64,
+    tabs: IndexMap<TabKey, TK>,
     history: Vec<TabKey>,
     active: Option<TabKey>,
     _phantom1: PhantomData<TKM>,
@@ -32,15 +32,24 @@ pub struct Tabs<TK, TKM, TKA> {
 }
 
 impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
+
+    fn next_key(&mut self) -> TabKey {
+        let key = TabKey(self.next_key_value);
+        self.next_key_value += 1;
+
+        key
+    }
+
     pub fn push(&mut self, tab_kind: TK) -> TabKey {
-        let key = self.tabs.insert(tab_kind);
+        let key = self.next_key();
+        let _old_value = self.tabs.insert(key, tab_kind);
         self.history.push(key);
 
         key
     }
 
     pub fn replace(&mut self, key: TabKey, tab_kind: TK) {
-        if let Some(value) = self.tabs.get_mut(key) {
+        if let Some(value) = self.tabs.get_mut(&key) {
             *value = tab_kind
         }
     }
@@ -52,7 +61,7 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     }
 
     pub fn close_all(&mut self) -> Vec<(TabKey, TK)> {
-        let closed_tabs: Vec<(TabKey, TK)> = self.tabs.drain().collect();
+        let closed_tabs: Vec<(TabKey, TK)> = self.tabs.drain(RangeFull).collect();
         let _previously_selected = self.active.take();
         self.history.clear();
         closed_tabs
@@ -63,11 +72,11 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
     }
 
     pub fn get(&self, key: TabKey) -> Option<&TK> {
-        self.tabs.get(key)
+        self.tabs.get(&key)
     }
 
     pub fn active(&self) -> Option<(TabKey, &TK)> {
-        self.active.map(|key|(key, self.tabs.get(key).unwrap()))
+        self.active.map(|key|(key, self.tabs.get(&key).unwrap()))
     }
 
     fn close(&mut self, key: TabKey) -> TK {
@@ -81,7 +90,7 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
             let _previously_active = self.active.take();
         }
 
-        let closed_tab = self.tabs.remove(key).unwrap();
+        let closed_tab = self.tabs.shift_remove(&key).unwrap();
         closed_tab
     }
 }
@@ -89,7 +98,8 @@ impl<TK, TKM, TKA> Tabs<TK, TKM, TKA> {
 impl<TK, TKM, TKA> Default for Tabs<TK, TKM, TKA> {
     fn default() -> Self {
         Self {
-            tabs: SlotMap::default(),
+            next_key_value: 0,
+            tabs: IndexMap::default(),
             history: Default::default(),
             active: None,
             _phantom1: Default::default(),
@@ -109,7 +119,7 @@ impl<TK, TKM: Clone, TKA> Tabs<TK, TKM, TKA> {
     {
         match message {
             TabMessage::TabKindMessage(key, message) => {
-                let tab = self.tabs.get_mut(key).unwrap();
+                let tab = self.tabs.get_mut(&key).unwrap();
                 let action = update_fn(key, tab, message);
 
                 TabAction::TabAction(action)
@@ -130,19 +140,19 @@ impl<TK, TKM: Clone, TKA> Tabs<TK, TKM, TKA> {
         LF: Fn(TabKey, &'label TK) -> String,
     {
         let tab_buttons = self.tabs.iter().map(|(key, tab)|{
-            let label = label_fn(key, tab);
+            let label = label_fn(*key, tab);
             let button = button(
                 row![
                     text(label),
                     button("X")
                         .style(button::text)
-                        .on_press_with(move || TabMessage::CloseTab(key))
+                        .on_press_with(move || TabMessage::CloseTab(*key))
                 ]
                     .spacing(4)
                     .align_y(Alignment::Center)
             )
-                .on_press_with(move || TabMessage::ActivateTab(key))
-                .style(if self.is_active(key) {
+                .on_press_with(move || TabMessage::ActivateTab(*key))
+                .style(if self.is_active(*key) {
                     button::primary
                 } else {
                     button::secondary
