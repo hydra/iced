@@ -2,8 +2,9 @@ use std::marker::PhantomData;
 use std::ops::RangeFull;
 use indexmap::IndexMap;
 use indexmap::map::Iter;
-use iced::{widget, Alignment, Element, Length};
-use iced::widget::{column, button, horizontal_space, row, scrollable, text};
+use iced::{widget, Alignment, Color, Element, Length, Theme};
+use iced::theme::palette::Extended;
+use iced::widget::{column, button, horizontal_space, row, scrollable, text, container, vertical_space, horizontal_rule, vertical_rule, Space};
 use iced::widget::scrollable::{Direction, Scrollbar};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -142,14 +143,31 @@ impl<TK, TKM: Clone, TKA> Tabs<TK, TKM, TKA> {
         let tab_buttons = self.tabs.iter().map(|(key, tab)|{
             let label = label_fn(*key, tab);
             let button = button(
-                row![
-                    text(label),
-                    button("X")
-                        .style(button::text)
-                        .on_press_with(move || TabMessage::CloseTab(*key))
+                column![
+                    row![
+                        text(label),
+                        button("X")
+                            .style(button::text)
+                            .on_press_with(move || TabMessage::CloseTab(*key)),
+                    ]
+                        .spacing(4)
+                        .align_y(Alignment::Center),
+                    // FIXME this doesn't get displayed, if you add a `.width(Length::Fill)` it panics
+                    /*
+                    container(
+                        Space::with_height(4)
+                    )
+                        .style(|theme: &Theme|{
+                            let palette: Extended = *theme.extended_palette();
+
+                            if self.is_active(*key) {
+                                container::background(palette.primary.base.color)
+                            } else {
+                                container::background(palette.secondary.base.color)
+                            }
+                        })
+                     */
                 ]
-                    .spacing(4)
-                    .align_y(Alignment::Center)
             )
                 .on_press_with(move || TabMessage::ActivateTab(*key))
                 .style(if self.is_active(*key) {
@@ -157,6 +175,8 @@ impl<TK, TKM: Clone, TKA> Tabs<TK, TKM, TKA> {
                 } else {
                     button::secondary
                 })
+                // FIXME when the above is fixed, always use secondary styling and use box to indicate active tab
+                //.style(button::secondary)
                 .into();
 
             button
