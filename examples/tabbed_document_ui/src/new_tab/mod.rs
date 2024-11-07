@@ -62,6 +62,16 @@ impl NewTab {
             NewDocumentKind::Image,
         ];
 
+        let message_to_emit_when_valid = if
+                !self.name.is_empty() &&
+                self.kind.is_some() &&
+                self.directory.exists()
+        {
+            Some(NewTabMessage::CreateDocument)
+        } else {
+            None
+        };
+
         let elements = row![
             widget::text("Name"),
             widget::text_input("Name", &self.name)
@@ -72,8 +82,7 @@ impl NewTab {
                 .on_press(NewTabMessage::ChooseDirectory),
             widget::pick_list(kinds, self.kind, NewTabMessage::KindSelected),
             widget::button("Ok")
-                // TODO validation!
-                .on_press(NewTabMessage::CreateDocument)
+                .on_press_maybe(message_to_emit_when_valid)
         ];
 
         elements
@@ -95,7 +104,9 @@ impl NewTab {
             }
             NewTabMessage::KindSelected(kind) => { self.kind.replace(kind); NewTabAction::None },
             NewTabMessage::DirectoryChosen(directory) => { self.directory = directory; NewTabAction::None },
-            NewTabMessage::CreateDocument => { NewTabAction::CreateDocument(self.name.clone(), self.directory.clone(), self.kind.unwrap()) }
+            NewTabMessage::CreateDocument => {
+                NewTabAction::CreateDocument(self.name.clone(), self.directory.clone(), self.kind.unwrap())
+            }
         }
     }
 
